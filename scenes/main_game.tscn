@@ -1,7 +1,28 @@
-[gd_scene load_steps=8 format=3 uid="uid://b6hppl38rx8ua"]
+[gd_scene load_steps=19 format=3 uid="uid://b6hppl38rx8ua"]
 
 [ext_resource type="Texture2D" uid="uid://gaix45ad7hgs" path="res://assets/background.png" id="1_background"]
 [ext_resource type="Script" uid="uid://bttfxt2arqx1k" path="res://scripts/MainGame.cs" id="1_main"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ButtonHover"]
+bg_color = Color(0.3, 0.4, 0.5, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ButtonPressed"]
+bg_color = Color(0.1, 0.2, 0.3, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_Button"]
+bg_color = Color(0.2, 0.3, 0.4, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_Panel"]
 bg_color = Color(0.3, 0.2, 0.1, 0.9)
@@ -10,8 +31,36 @@ corner_radius_top_right = 15
 corner_radius_bottom_right = 15
 corner_radius_bottom_left = 15
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_RedHover"]
+bg_color = Color(1, 0.3, 0.3, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_RedPressed"]
+bg_color = Color(0.6, 0.1, 0.1, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_Red"]
 bg_color = Color(0.8, 0.2, 0.2, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_BlueHover"]
+bg_color = Color(0.3, 0.5, 1, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_BluePressed"]
+bg_color = Color(0.1, 0.2, 0.6, 1)
 corner_radius_top_left = 10
 corner_radius_top_right = 10
 corner_radius_bottom_right = 10
@@ -24,6 +73,20 @@ corner_radius_top_right = 10
 corner_radius_bottom_right = 10
 corner_radius_bottom_left = 10
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_GreenHover"]
+bg_color = Color(0.3, 0.7, 0.3, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_GreenPressed"]
+bg_color = Color(0.1, 0.5, 0.1, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_Green"]
 bg_color = Color(0.2, 0.6, 0.2, 1)
 corner_radius_top_left = 10
@@ -31,8 +94,22 @@ corner_radius_top_right = 10
 corner_radius_bottom_right = 10
 corner_radius_bottom_left = 10
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_YellowHover"]
+bg_color = Color(0.8, 0.8, 0.3, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_YellowPressed"]
+bg_color = Color(0.4, 0.4, 0.1, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_Yellow"]
-bg_color = Color(0.8, 0.8, 0.2, 1)
+bg_color = Color(0.6, 0.6, 0.2, 1)
 corner_radius_top_left = 10
 corner_radius_top_right = 10
 corner_radius_bottom_right = 10
@@ -181,7 +258,7 @@ layout_mode = 2
 
 [node name="ActionButtons" type="VBoxContainer" parent="UILayer/UI"]
 layout_mode = 1
-anchors_preset = 8
+anchors_preset = 7
 anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
@@ -196,11 +273,17 @@ grow_vertical = 0
 [node name="DrawCardButton" type="Button" parent="UILayer/UI/ActionButtons"]
 custom_minimum_size = Vector2(120, 40)
 layout_mode = 2
+theme_override_styles/hover = SubResource("StyleBoxFlat_ButtonHover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_ButtonPressed")
+theme_override_styles/normal = SubResource("StyleBoxFlat_Button")
 text = "抽牌"
 
 [node name="UnoButton" type="Button" parent="UILayer/UI/ActionButtons"]
 custom_minimum_size = Vector2(120, 40)
 layout_mode = 2
+theme_override_styles/hover = SubResource("StyleBoxFlat_ButtonHover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_ButtonPressed")
+theme_override_styles/normal = SubResource("StyleBoxFlat_Button")
 text = "喊UNO!"
 
 [node name="ColorSelectionPanel" type="Panel" parent="UILayer/UI"]
@@ -246,25 +329,31 @@ columns = 2
 [node name="RedButton" type="Button" parent="UILayer/UI/ColorSelectionPanel/ColorButtons"]
 custom_minimum_size = Vector2(120, 50)
 layout_mode = 2
+theme_override_styles/hover = SubResource("StyleBoxFlat_RedHover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_RedPressed")
 theme_override_styles/normal = SubResource("StyleBoxFlat_Red")
 text = "紅色"
 
 [node name="BlueButton" type="Button" parent="UILayer/UI/ColorSelectionPanel/ColorButtons"]
 custom_minimum_size = Vector2(120, 50)
 layout_mode = 2
+theme_override_styles/hover = SubResource("StyleBoxFlat_BlueHover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_BluePressed")
 theme_override_styles/normal = SubResource("StyleBoxFlat_Blue")
 text = "藍色"
 
 [node name="GreenButton" type="Button" parent="UILayer/UI/ColorSelectionPanel/ColorButtons"]
 custom_minimum_size = Vector2(120, 50)
 layout_mode = 2
+theme_override_styles/hover = SubResource("StyleBoxFlat_GreenHover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_GreenPressed")
 theme_override_styles/normal = SubResource("StyleBoxFlat_Green")
 text = "綠色"
 
 [node name="YellowButton" type="Button" parent="UILayer/UI/ColorSelectionPanel/ColorButtons"]
 custom_minimum_size = Vector2(120, 50)
 layout_mode = 2
+theme_override_styles/hover = SubResource("StyleBoxFlat_YellowHover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_YellowPressed")
 theme_override_styles/normal = SubResource("StyleBoxFlat_Yellow")
 text = "黃色"
-
-

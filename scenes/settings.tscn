@@ -1,9 +1,9 @@
-[gd_scene load_steps=9 format=3 uid="uid://cw7y8xrmt3tr2"]
+[gd_scene load_steps=12 format=3 uid="uid://cw7y8xrmt3tr2"]
 
 [ext_resource type="Script" uid="uid://ctmns2mi7yaip" path="res://scripts/Settings.cs" id="1_settings"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_Panel"]
-bg_color = Color(0.15, 0.15, 0.2, 0.95)
+bg_color = Color(0.2, 0.2, 0.25, 0.95)
 corner_radius_top_left = 20
 corner_radius_top_right = 20
 corner_radius_bottom_right = 20
@@ -37,8 +37,29 @@ corner_radius_top_right = 10
 corner_radius_bottom_right = 10
 corner_radius_bottom_left = 10
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_GreenPressed"]
+bg_color = Color(0.1, 0.5, 0.1, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_Green"]
 bg_color = Color(0.2, 0.6, 0.2, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_RedHover"]
+bg_color = Color(1, 0.3, 0.3, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_RedPressed"]
+bg_color = Color(0.6, 0.1, 0.1, 1)
 corner_radius_top_left = 10
 corner_radius_top_right = 10
 corner_radius_bottom_right = 10
@@ -67,7 +88,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.05, 0.05, 0.1, 1)
+color = Color(0.08, 0.08, 0.12, 1)
 
 [node name="SettingsPanel" type="Panel" parent="."]
 layout_mode = 1
@@ -125,6 +146,7 @@ text = "語言設定"
 horizontal_alignment = 1
 
 [node name="LanguageOptions" type="OptionButton" parent="SettingsPanel/LanguageSection"]
+custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
 theme_override_constants/h_separation = 10
@@ -154,7 +176,7 @@ custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
 theme_override_styles/hover = SubResource("StyleBoxFlat_GreenHover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_ButtonPressed")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_GreenPressed")
 theme_override_styles/normal = SubResource("StyleBoxFlat_Green")
 text = "儲存設定"
 
@@ -162,7 +184,7 @@ text = "儲存設定"
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
-theme_override_styles/hover = SubResource("StyleBoxFlat_ButtonHover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_ButtonPressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_RedHover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_RedPressed")
 theme_override_styles/normal = SubResource("StyleBoxFlat_Red")
 text = "返回主選單"
