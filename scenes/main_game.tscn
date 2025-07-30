@@ -75,11 +75,14 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_left = 20.0
+offset_right = -20.0
 grow_horizontal = 2
 grow_vertical = 2
 
 [node name="CurrentPlayer" type="Label" parent="UILayer/UI/TopPanel/GameInfo"]
 layout_mode = 2
+size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 18
 text = "當前玩家: 玩家1"
 
@@ -92,6 +95,15 @@ text = "當前顏色: 紅色"
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "剩餘牌數: 7"
+
+[node name="Spacer" type="Control" parent="UILayer/UI/TopPanel/GameInfo"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="BackToMenuButton" type="Button" parent="UILayer/UI/TopPanel/GameInfo"]
+layout_mode = 2
+size_flags_horizontal = 8
+text = "返回主選單"
 
 [node name="CenterArea" type="Control" parent="UILayer/UI"]
 layout_mode = 1
@@ -141,7 +153,9 @@ anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_left = 20.0
 offset_top = -120.0
+offset_right = -20.0
 grow_horizontal = 2
 grow_vertical = 0
 
@@ -167,14 +181,16 @@ layout_mode = 2
 
 [node name="ActionButtons" type="VBoxContainer" parent="UILayer/UI"]
 layout_mode = 1
-anchors_preset = 3
-anchor_left = 1.0
+anchors_preset = 8
+anchor_left = 0.5
 anchor_top = 1.0
-anchor_right = 1.0
+anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -150.0
+offset_left = -60.0
 offset_top = -200.0
-grow_horizontal = 0
+offset_right = 60.0
+offset_bottom = -20.0
+grow_horizontal = 2
 grow_vertical = 0
 
 [node name="DrawCardButton" type="Button" parent="UILayer/UI/ActionButtons"]
@@ -251,14 +267,4 @@ layout_mode = 2
 theme_override_styles/normal = SubResource("StyleBoxFlat_Yellow")
 text = "黃色"
 
-[node name="BackToMenuButton" type="Button" parent="UILayer/UI"]
-layout_mode = 1
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -100.0
-offset_top = 10.0
-offset_right = -10.0
-offset_bottom = 40.0
-grow_horizontal = 0
-text = "返回主選單"
+
