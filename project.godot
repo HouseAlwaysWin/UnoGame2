@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="UnoGame"
-run/main_scene="uid://b7xfv2g3yceq3"
+run/main_scene="uid://bvlhbuiquu0hk"
 config/features=PackedStringArray("4.4", "C#", "Forward Plus")
 config/icon="uid://80pvhfkqf2n8"
 
