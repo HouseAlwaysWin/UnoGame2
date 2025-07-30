@@ -1,0 +1,168 @@
+[gd_scene load_steps=9 format=3 uid="uid://cw7y8xrmt3tr2"]
+
+[ext_resource type="Script" uid="uid://ctmns2mi7yaip" path="res://scripts/Settings.cs" id="1_settings"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_Panel"]
+bg_color = Color(0.15, 0.15, 0.2, 0.95)
+corner_radius_top_left = 20
+corner_radius_top_right = 20
+corner_radius_bottom_right = 20
+corner_radius_bottom_left = 20
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ButtonHover"]
+bg_color = Color(0.3, 0.4, 0.5, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ButtonPressed"]
+bg_color = Color(0.1, 0.2, 0.3, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_Button"]
+bg_color = Color(0.2, 0.3, 0.4, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_GreenHover"]
+bg_color = Color(0.3, 0.7, 0.3, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_Green"]
+bg_color = Color(0.2, 0.6, 0.2, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_Red"]
+bg_color = Color(0.8, 0.2, 0.2, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[node name="Settings" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_settings")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.05, 0.05, 0.1, 1)
+
+[node name="SettingsPanel" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -150.0
+offset_right = 200.0
+offset_bottom = 150.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_Panel")
+
+[node name="Title" type="Label" parent="SettingsPanel"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -100.0
+offset_top = -120.0
+offset_right = 100.0
+offset_bottom = -80.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+theme_override_font_sizes/font_size = 24
+text = "設定"
+horizontal_alignment = 1
+
+[node name="LanguageSection" type="VBoxContainer" parent="SettingsPanel"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -150.0
+offset_top = -50.0
+offset_right = 150.0
+offset_bottom = 50.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 15
+
+[node name="LanguageLabel" type="Label" parent="SettingsPanel/LanguageSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+theme_override_font_sizes/font_size = 18
+text = "語言設定"
+horizontal_alignment = 1
+
+[node name="LanguageOptions" type="OptionButton" parent="SettingsPanel/LanguageSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+theme_override_constants/h_separation = 10
+theme_override_font_sizes/font_size = 16
+theme_override_styles/hover = SubResource("StyleBoxFlat_ButtonHover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_ButtonPressed")
+theme_override_styles/normal = SubResource("StyleBoxFlat_Button")
+alignment = 1
+
+[node name="ButtonsContainer" type="VBoxContainer" parent="SettingsPanel"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -150.0
+offset_top = -100.0
+offset_right = 150.0
+offset_bottom = -20.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_constants/separation = 10
+
+[node name="SaveButton" type="Button" parent="SettingsPanel/ButtonsContainer"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+theme_override_styles/hover = SubResource("StyleBoxFlat_GreenHover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_ButtonPressed")
+theme_override_styles/normal = SubResource("StyleBoxFlat_Green")
+text = "儲存設定"
+
+[node name="BackButton" type="Button" parent="SettingsPanel/ButtonsContainer"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+theme_override_styles/hover = SubResource("StyleBoxFlat_ButtonHover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_ButtonPressed")
+theme_override_styles/normal = SubResource("StyleBoxFlat_Red")
+text = "返回主選單"

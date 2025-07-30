@@ -38,9 +38,8 @@ public partial class MainScreen : Control
 
     private void OnSettingsButtonPressed()
     {
-        GD.Print("打開設定");
-        // 這裡可以打開設定菜單
-        // GetTree().ChangeSceneToFile("res://scenes/settings.tscn");
+        GD.Print("打開設定 - 切換到設定場景");
+        GetTree().ChangeSceneToFile("res://scenes/settings.tscn");
     }
 
     private void OnQuitButtonPressed()
