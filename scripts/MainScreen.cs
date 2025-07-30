@@ -8,10 +8,10 @@ public partial class MainScreen : Control
         GD.Print("主選單已加載");
         
         // 獲取按鈕節點
-        var singlePlayerButton = GetNode<Button>("VBoxContainer/StartButton");
-        var multiplayerButton = GetNode<Button>("VBoxContainer/MultiplayerButton");
-        var settingsButton = GetNode<Button>("VBoxContainer/SettingsButton");
-        var quitButton = GetNode<Button>("VBoxContainer/QuitButton");
+        var singlePlayerButton = GetNode<Button>("MenuButtonGroup/StartButton");
+        var multiplayerButton = GetNode<Button>("MenuButtonGroup/MultiplayerButton");
+        var settingsButton = GetNode<Button>("MenuButtonGroup/SettingsButton");
+        var quitButton = GetNode<Button>("MenuButtonGroup/QuitButton");
         
         // 連接按鈕信號
         if (singlePlayerButton != null)
@@ -32,9 +32,8 @@ public partial class MainScreen : Control
 
     private void OnMultiplayerButtonPressed()
     {
-        GD.Print("開始多人連線遊戲");
-        // 這裡可以切換到多人遊戲場景
-        // GetTree().ChangeSceneToFile("res://scenes/multiplayer_game.tscn");
+        GD.Print("開始多人連線遊戲 - 切換到多人房間");
+        GetTree().ChangeSceneToFile("res://scenes/multiplayer_room.tscn");
     }
 
     private void OnSettingsButtonPressed()
