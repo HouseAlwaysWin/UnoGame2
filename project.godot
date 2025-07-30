@@ -12,9 +12,8 @@ config_version=5
 
 config/name="UnoGame"
 run/main_scene="uid://b7xfv2g3yceq3"
-config/features=PackedStringArray("4.4", "Forward Plus")
+config/features=PackedStringArray("4.4", "C#", "Forward Plus")
 config/icon="uid://80pvhfkqf2n8"
-config/windows_native_icon="uid://80pvhfkqf2n8"
 
 [dotnet]
 

@@ -1,3 +1,19 @@
-[gd_scene format=3 uid="uid://b7xfv2g3yceq3"]
+[gd_scene load_steps=3 format=3 uid="uid://b7xfv2g3yceq3"]
+
+[ext_resource type="Texture2D" uid="uid://80pvhfkqf2n8" path="res://assets/logo.png" id="1_1"]
+[ext_resource type="Script" uid="uid://gmd5podle5y8" path="res://scripts/MainScreen.cs" id="1_2"]
 
 [node name="MainScreen" type="Node2D"]
+script = ExtResource("1_2")
+
+[node name="Logo" type="TextureRect" parent="."]
+offset_left = 470.0
+offset_top = 85.0
+offset_right = 670.0
+offset_bottom = 285.0
+size_flags_horizontal = 4
+size_flags_vertical = 4
+texture = ExtResource("1_1")
+expand_mode = 1
+stretch_mode = 5
+metadata/_edit_use_anchors_ = true
