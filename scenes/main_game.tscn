@@ -1,3 +1,197 @@
-[gd_scene format=3 uid="uid://b6hppl38rx8ua"]
+[gd_scene load_steps=2 format=3 uid="uid://b6hppl38rx8ua"]
+
+[ext_resource type="Script" uid="uid://bttfxt2arqx1k" path="res://scripts/MainGame.cs" id="1_main"]
 
 [node name="MainGame" type="Node2D"]
+script = ExtResource("1_main")
+
+[node name="GameWorld" type="Node2D" parent="."]
+
+[node name="Background" type="ColorRect" parent="GameWorld"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.2, 0.4, 0.2, 1)
+
+[node name="UILayer" type="CanvasLayer" parent="."]
+
+[node name="UI" type="Control" parent="UILayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TopPanel" type="Panel" parent="UILayer/UI"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 60.0
+grow_horizontal = 2
+
+[node name="GameInfo" type="HBoxContainer" parent="UILayer/UI/TopPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="CurrentPlayer" type="Label" parent="UILayer/UI/TopPanel/GameInfo"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "當前玩家: 玩家1"
+
+[node name="CurrentColor" type="Label" parent="UILayer/UI/TopPanel/GameInfo"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "當前顏色: 紅色"
+
+[node name="CardsLeft" type="Label" parent="UILayer/UI/TopPanel/GameInfo"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "剩餘牌數: 7"
+
+[node name="CenterArea" type="Control" parent="UILayer/UI"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -150.0
+offset_right = 200.0
+offset_bottom = 150.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="DiscardPile" type="TextureRect" parent="UILayer/UI/CenterArea"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -50.0
+offset_top = -75.0
+offset_right = 50.0
+offset_bottom = 75.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="DrawPile" type="TextureRect" parent="UILayer/UI/CenterArea"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -150.0
+offset_top = -75.0
+offset_right = -50.0
+offset_bottom = 75.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="PlayerHand" type="HBoxContainer" parent="UILayer/UI"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -120.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="Card1" type="TextureRect" parent="UILayer/UI/PlayerHand"]
+custom_minimum_size = Vector2(80, 120)
+layout_mode = 2
+
+[node name="Card2" type="TextureRect" parent="UILayer/UI/PlayerHand"]
+custom_minimum_size = Vector2(80, 120)
+layout_mode = 2
+
+[node name="Card3" type="TextureRect" parent="UILayer/UI/PlayerHand"]
+custom_minimum_size = Vector2(80, 120)
+layout_mode = 2
+
+[node name="Card4" type="TextureRect" parent="UILayer/UI/PlayerHand"]
+custom_minimum_size = Vector2(80, 120)
+layout_mode = 2
+
+[node name="Card5" type="TextureRect" parent="UILayer/UI/PlayerHand"]
+custom_minimum_size = Vector2(80, 120)
+layout_mode = 2
+
+[node name="ActionButtons" type="VBoxContainer" parent="UILayer/UI"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -150.0
+offset_top = -200.0
+grow_horizontal = 0
+grow_vertical = 0
+
+[node name="DrawCardButton" type="Button" parent="UILayer/UI/ActionButtons"]
+custom_minimum_size = Vector2(120, 40)
+layout_mode = 2
+text = "抽牌"
+
+[node name="UnoButton" type="Button" parent="UILayer/UI/ActionButtons"]
+custom_minimum_size = Vector2(120, 40)
+layout_mode = 2
+text = "喊UNO!"
+
+[node name="ColorButtons" type="GridContainer" parent="UILayer/UI"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -100.0
+offset_top = 50.0
+offset_right = 100.0
+offset_bottom = 150.0
+grow_horizontal = 2
+grow_vertical = 2
+columns = 2
+
+[node name="RedButton" type="Button" parent="UILayer/UI/ColorButtons"]
+custom_minimum_size = Vector2(80, 40)
+layout_mode = 2
+text = "紅色"
+
+[node name="BlueButton" type="Button" parent="UILayer/UI/ColorButtons"]
+custom_minimum_size = Vector2(80, 40)
+layout_mode = 2
+text = "藍色"
+
+[node name="GreenButton" type="Button" parent="UILayer/UI/ColorButtons"]
+custom_minimum_size = Vector2(80, 40)
+layout_mode = 2
+text = "綠色"
+
+[node name="YellowButton" type="Button" parent="UILayer/UI/ColorButtons"]
+custom_minimum_size = Vector2(80, 40)
+layout_mode = 2
+text = "黃色"
+
+[node name="BackToMenuButton" type="Button" parent="UILayer/UI"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -100.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = 40.0
+grow_horizontal = 0
+text = "返回主選單"
