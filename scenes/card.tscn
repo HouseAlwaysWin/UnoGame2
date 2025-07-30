@@ -1,11 +1,11 @@
 [gd_scene load_steps=3 format=3 uid="uid://dpxjkygowg2nt"]
 
-[ext_resource type="Texture2D" uid="uid://dw82w0xjbw6ly" path="res://assets/blue0.png" id="1_card_texture"]
+[ext_resource type="Texture2D" uid="uid://dwoyj4betmjx2" path="res://assets/back.png" id="1_6u4wf"]
 [ext_resource type="Script" uid="uid://bvymy72f0hb1p" path="res://scripts/Card.cs" id="2_card_script"]
 
 [node name="Card" type="TextureRect"]
 custom_minimum_size = Vector2(80, 120)
-texture = ExtResource("1_card_texture")
+texture = ExtResource("1_6u4wf")
 expand_mode = 1
 stretch_mode = 5
 script = ExtResource("2_card_script")
