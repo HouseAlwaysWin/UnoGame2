@@ -21,6 +21,9 @@ public enum CardColor
 
 public partial class Card : TextureRect
 {
+    [Signal]
+    public delegate void CardClickedEventHandler(Card card);
+    
     [Export]
     public CardColor Color { get; set; } = CardColor.Red;
     
@@ -32,8 +35,19 @@ public partial class Card : TextureRect
     
     public override void _Ready()
     {
-        // 初始化卡片顯示
-        UpdateCardDisplay();
+        // 初始化時不自動顯示正面，等待外部設置
+        // UpdateCardDisplay();
+        
+        // 添加邊框效果
+        AddBorder();
+    }
+    
+    private void AddBorder()
+    {
+        // 為 TextureRect 添加邊框效果
+        // 使用 Modulate 來創建邊框效果
+        // 這裡我們用簡單的顏色調整來模擬邊框
+        Modulate = new Color(1, 1, 1, 1); // 確保不透明度為1
     }
     
     public void SetCard(CardColor color, string value, CardType type = CardType.Number)
@@ -91,7 +105,16 @@ public partial class Card : TextureRect
             if (backTexture != null)
             {
                 Texture = backTexture;
+                GD.Print("卡片背面已設置");
             }
+            else
+            {
+                GD.PrintErr("無法載入背面圖片: " + backPath);
+            }
+        }
+        else
+        {
+            GD.PrintErr("背面圖片不存在: " + backPath);
         }
     }
     
@@ -122,7 +145,7 @@ public partial class Card : TextureRect
             {
                 GD.Print($"卡片被點擊: {Color} {CardValue}");
                 // 這裡可以發出自定義信號
-                EmitSignal("CardClicked", this);
+                EmitSignal(SignalName.CardClicked, this);
             }
         }
     }

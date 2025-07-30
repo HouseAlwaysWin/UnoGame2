@@ -15,6 +15,11 @@ public partial class MainGame : Node2D
     private List<Card> discardPile = new List<Card>(); // 棄牌堆
     private List<Card> playerHand = new List<Card>(); // 玩家手牌
     private Card currentTopCard; // 當前頂牌
+    
+    // UI 引用
+    private TextureRect drawPileUI;
+    private TextureRect discardPileUI;
+    private HBoxContainer playerHandUI;
 
     public override void _Ready()
     {
@@ -43,6 +48,11 @@ public partial class MainGame : Node2D
         blueButton = GetNode<Button>("UILayer/UI/ColorSelectionPanel/ColorButtons/BlueButton");
         greenButton = GetNode<Button>("UILayer/UI/ColorSelectionPanel/ColorButtons/GreenButton");
         yellowButton = GetNode<Button>("UILayer/UI/ColorSelectionPanel/ColorButtons/YellowButton");
+        
+        // 獲取卡牌顯示區域引用
+        drawPileUI = GetNode<TextureRect>("UILayer/UI/DrawPile");
+        discardPileUI = GetNode<TextureRect>("UILayer/UI/CenterArea/DiscardPile");
+        playerHandUI = GetNode<HBoxContainer>("UILayer/UI/PlayerHand");
     }
 
     private void ConnectButtonSignals()
@@ -116,8 +126,53 @@ public partial class MainGame : Node2D
         // 設置第一張頂牌
         SetFirstTopCard();
         
+        // 顯示抽牌堆背面
+        ShowDrawPileBack();
+        
         GD.Print($"初始化完成 - 抽牌堆: {drawPile.Count}張, 玩家手牌: {playerHand.Count}張, 頂牌: 1張");
         GD.Print($"總計: {drawPile.Count + playerHand.Count + 1}張 (108張牌 - 7張手牌 - 1張頂牌 = 100張抽牌堆)");
+    }
+    
+    private void ShowDrawPileBack()
+    {
+        if (drawPileUI != null && drawPile.Count > 0)
+        {
+            // 創建堆疊卡牌效果
+            CreateDrawPileStack();
+            GD.Print("抽牌堆堆疊效果已創建");
+        }
+    }
+    
+    private void CreateDrawPileStack()
+    {
+        // 清除現有的子節點
+        foreach (Node child in drawPileUI.GetChildren())
+        {
+            child.QueueFree();
+        }
+        
+        // 創建多張卡牌來形成堆疊效果
+        int stackCount = Math.Min(5, drawPile.Count); // 最多顯示10張
+        
+        for (int i = 0; i < stackCount; i++)
+        {
+            // 載入卡片場景並實例化
+            var cardScene = ResourceLoader.Load<PackedScene>("res://scenes/card.tscn");
+            if (cardScene != null)
+            {
+                var cardInstance = cardScene.Instantiate<Card>();
+                
+                // 將卡牌添加到UI（在設置背面之前）
+                drawPileUI.AddChild(cardInstance);
+                
+                // 設置位置，形成堆疊效果
+                cardInstance.Position = new Vector2(i * 2, i * 2); // 每張卡牌稍微偏移
+                cardInstance.ZIndex = i; // 設置層級，後面的卡牌在上層
+                
+                // 所有卡牌都設置為背面（在添加到UI之後）
+                cardInstance.SetCardBack();
+            }
+        }
     }
     
     private void CreateDeck()
@@ -250,6 +305,47 @@ public partial class MainGame : Node2D
         {
             currentTopCard = firstCard;
             discardPile.Add(firstCard);
+            
+            // 顯示頂牌
+            if (discardPileUI != null)
+            {
+                // 清除現有的子節點
+                foreach (Node child in discardPileUI.GetChildren())
+                {
+                    child.QueueFree();
+                }
+                
+                // 創建頂牌實例
+                var cardScene = ResourceLoader.Load<PackedScene>("res://scenes/card.tscn");
+                if (cardScene != null)
+                {
+                    var topCardInstance = cardScene.Instantiate<Card>();
+                    topCardInstance.SetCard(firstCard.Color, firstCard.CardValue, firstCard.Type);
+                    topCardInstance.SetCardFront(); // 確保顯示正面
+                    
+                    // 將頂牌添加到UI
+                    discardPileUI.AddChild(topCardInstance);
+                    
+                    // 為頂牌添加邊框效果
+                    var topCardBorder = new ColorRect();
+                    topCardBorder.Color = new Color(1, 1, 1, 0.9f); // 白色邊框，更接近真實卡牌
+                    topCardBorder.Size = topCardInstance.Size + new Vector2(4, 4);
+                    topCardBorder.Position = topCardInstance.Position - new Vector2(2, 2);
+                    topCardBorder.ZIndex = topCardInstance.ZIndex - 1;
+                    
+                    // 添加圓角效果
+                    var topCardBorderStyle = new StyleBoxFlat();
+                    topCardBorderStyle.BgColor = topCardBorder.Color;
+                    topCardBorderStyle.CornerRadiusTopLeft = 12;
+                    topCardBorderStyle.CornerRadiusTopRight = 12;
+                    topCardBorderStyle.CornerRadiusBottomLeft = 12;
+                    topCardBorderStyle.CornerRadiusBottomRight = 12;
+                    topCardBorder.AddThemeStyleboxOverride("panel", topCardBorderStyle);
+                    
+                    discardPileUI.AddChild(topCardBorder);
+                }
+            }
+            
             GD.Print($"頂牌設置為: {firstCard.Color} {firstCard.CardValue}");
         }
         else
