@@ -8,23 +8,33 @@ public partial class MainScreen : Control
         GD.Print("主選單已加載");
         
         // 獲取按鈕節點
-        var startButton = GetNode<Button>("VBoxContainer/StartButton");
+        var singlePlayerButton = GetNode<Button>("VBoxContainer/StartButton");
+        var multiplayerButton = GetNode<Button>("VBoxContainer/MultiplayerButton");
         var settingsButton = GetNode<Button>("VBoxContainer/SettingsButton");
         var quitButton = GetNode<Button>("VBoxContainer/QuitButton");
         
         // 連接按鈕信號
-        if (startButton != null)
-            startButton.Pressed += OnStartButtonPressed;
+        if (singlePlayerButton != null)
+            singlePlayerButton.Pressed += OnSinglePlayerButtonPressed;
+        if (multiplayerButton != null)
+            multiplayerButton.Pressed += OnMultiplayerButtonPressed;
         if (settingsButton != null)
             settingsButton.Pressed += OnSettingsButtonPressed;
         if (quitButton != null)
             quitButton.Pressed += OnQuitButtonPressed;
     }
 
-    private void OnStartButtonPressed()
+    private void OnSinglePlayerButtonPressed()
     {
-        GD.Print("開始遊戲 - 切換到主遊戲場景");
+        GD.Print("開始單人遊戲 - 切換到主遊戲場景");
         GetTree().ChangeSceneToFile("res://scenes/main_game.tscn");
+    }
+
+    private void OnMultiplayerButtonPressed()
+    {
+        GD.Print("開始多人連線遊戲");
+        // 這裡可以切換到多人遊戲場景
+        // GetTree().ChangeSceneToFile("res://scenes/multiplayer_game.tscn");
     }
 
     private void OnSettingsButtonPressed()

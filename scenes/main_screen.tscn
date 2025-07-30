@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3 uid="uid://bvlhbuiquu0hk"]
+[gd_scene load_steps=15 format=3 uid="uid://bvlhbuiquu0hk"]
 
 [ext_resource type="Texture2D" uid="uid://80pvhfkqf2n8" path="res://assets/logo.png" id="1_1"]
 [ext_resource type="Script" uid="uid://gmd5podle5y8" path="res://scripts/MainScreen.cs" id="1_2"]
@@ -19,6 +19,27 @@ corner_radius_bottom_left = 10
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_lushf"]
 bg_color = Color(0.0941176, 0.227451, 0.6, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_8"]
+bg_color = Color(0.9, 0.5, 0.3, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_9"]
+bg_color = Color(0.6, 0.3, 0.1, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7"]
+bg_color = Color(0.8, 0.4, 0.2, 1)
 corner_radius_top_left = 10
 corner_radius_top_right = 10
 corner_radius_bottom_right = 10
@@ -90,9 +111,9 @@ anchors_preset = 5
 anchor_left = 0.5
 anchor_right = 0.5
 offset_left = -205.0
-offset_top = 50.0
+offset_top = 30.0
 offset_right = 205.0
-offset_bottom = 338.0
+offset_bottom = 318.0
 grow_horizontal = 2
 texture = ExtResource("1_1")
 
@@ -104,11 +125,12 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -150.0
-offset_top = 100.0
+offset_top = 40.0
 offset_right = 150.0
-offset_bottom = 250.0
+offset_bottom = 290.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_constants/separation = 10
 
 [node name="StartButton" type="Button" parent="VBoxContainer"]
 custom_minimum_size = Vector2(0, 60)
@@ -117,7 +139,16 @@ theme_override_font_sizes/font_size = 24
 theme_override_styles/hover = SubResource("StyleBoxFlat_kusfh")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_aum10")
 theme_override_styles/normal = SubResource("StyleBoxFlat_lushf")
-text = "開始遊戲"
+text = "單人遊戲"
+
+[node name="MultiplayerButton" type="Button" parent="VBoxContainer"]
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+theme_override_styles/hover = SubResource("StyleBoxFlat_8")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_9")
+theme_override_styles/normal = SubResource("StyleBoxFlat_7")
+text = "多人連線"
 
 [node name="SettingsButton" type="Button" parent="VBoxContainer"]
 custom_minimum_size = Vector2(0, 50)
