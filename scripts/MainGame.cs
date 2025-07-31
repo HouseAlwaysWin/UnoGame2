@@ -444,9 +444,11 @@ public partial class MainGame : Node2D
     {
         if (playerHandScrollContainer != null)
         {
-            // 計算滾動位置
+            // 計算滾動位置 - 每次移動一張卡的完整距離
             float cardWidth = 80.0f; // 卡牌寬度
-            float scrollOffset = currentHandScrollIndex * cardWidth;
+            float cardSpacing = 10.0f; // 卡牌間距
+            float totalCardWidth = cardWidth + cardSpacing; // 每張卡佔用的總寬度
+            float scrollOffset = currentHandScrollIndex * totalCardWidth;
             
             // 設置滾動位置
             playerHandScrollContainer.ScrollHorizontal = (int)scrollOffset;

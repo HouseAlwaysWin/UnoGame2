@@ -286,13 +286,14 @@ grow_vertical = 2
 
 [node name="PlayerHand" type="HBoxContainer" parent="UILayer/UI"]
 layout_mode = 1
-anchors_preset = 12
+anchors_preset = 7
+anchor_left = 0.5
 anchor_top = 1.0
-anchor_right = 1.0
+anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = 118.0
+offset_left = -310.0
 offset_top = -188.0
-offset_right = -182.0
+offset_right = 310.0
 offset_bottom = -28.0
 grow_horizontal = 2
 grow_vertical = 0
@@ -314,6 +315,7 @@ horizontal_scroll_mode = 2
 vertical_scroll_mode = 0
 
 [node name="CardsContainer" type="Control" parent="UILayer/UI/PlayerHand/ScrollContainer"]
+custom_minimum_size = Vector2(620, 160)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
