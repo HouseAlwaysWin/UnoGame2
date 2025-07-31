@@ -233,25 +233,35 @@ offset_right = -20.0
 grow_horizontal = 2
 grow_vertical = 0
 
-[node name="Card1" type="TextureRect" parent="UILayer/UI/PlayerHand"]
-custom_minimum_size = Vector2(80, 120)
+[node name="LeftScrollButton" type="Button" parent="UILayer/UI/PlayerHand"]
+visible = false
+custom_minimum_size = Vector2(30, 120)
 layout_mode = 2
+theme_override_styles/hover = SubResource("StyleBoxFlat_ButtonHover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_ButtonPressed")
+theme_override_styles/normal = SubResource("StyleBoxFlat_Button")
+text = "<"
 
-[node name="Card2" type="TextureRect" parent="UILayer/UI/PlayerHand"]
-custom_minimum_size = Vector2(80, 120)
+[node name="ScrollContainer" type="ScrollContainer" parent="UILayer/UI/PlayerHand"]
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 2
+vertical_scroll_mode = 0
 
-[node name="Card3" type="TextureRect" parent="UILayer/UI/PlayerHand"]
-custom_minimum_size = Vector2(80, 120)
+[node name="CardsContainer" type="HBoxContainer" parent="UILayer/UI/PlayerHand/ScrollContainer"]
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 
-[node name="Card4" type="TextureRect" parent="UILayer/UI/PlayerHand"]
-custom_minimum_size = Vector2(80, 120)
+[node name="RightScrollButton" type="Button" parent="UILayer/UI/PlayerHand"]
+visible = false
+custom_minimum_size = Vector2(30, 120)
 layout_mode = 2
-
-[node name="Card5" type="TextureRect" parent="UILayer/UI/PlayerHand"]
-custom_minimum_size = Vector2(80, 120)
-layout_mode = 2
+theme_override_styles/hover = SubResource("StyleBoxFlat_ButtonHover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_ButtonPressed")
+theme_override_styles/normal = SubResource("StyleBoxFlat_Button")
+text = ">"
 
 [node name="ActionButtons" type="VBoxContainer" parent="UILayer/UI"]
 layout_mode = 1
@@ -261,9 +271,9 @@ anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
 offset_left = -60.0
-offset_top = -200.0
+offset_top = -230.0
 offset_right = 60.0
-offset_bottom = -20.0
+offset_bottom = -50.0
 grow_horizontal = 2
 grow_vertical = 0
 
