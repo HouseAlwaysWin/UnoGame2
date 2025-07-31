@@ -33,6 +33,22 @@ public partial class Card : TextureRect
     [Export]
     public CardType Type { get; set; } = CardType.Number;
     
+    public override bool Equals(object obj)
+    {
+        if (obj is Card other)
+        {
+            return Color == other.Color && 
+                   CardValue == other.CardValue && 
+                   Type == other.Type;
+        }
+        return false;
+    }
+    
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Color, CardValue, Type);
+    }
+    
     public override void _Ready()
     {
         // 初始化時不自動顯示正面，等待外部設置

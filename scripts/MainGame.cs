@@ -462,6 +462,131 @@ public partial class MainGame : Node2D
     {
         GD.Print($"開始出牌: {cardToPlay.Color} {cardToPlay.CardValue}");
         
+        // 開始出牌動畫
+        StartPlayCardAnimation(cardToPlay);
+    }
+    
+    private void StartPlayCardAnimation(Card cardToPlay)
+    {
+        GD.Print($"開始出牌動畫: {cardToPlay.Color} {cardToPlay.CardValue}");
+        
+        // 創建動畫卡牌實例
+        var cardScene = ResourceLoader.Load<PackedScene>("res://scenes/card.tscn");
+        if (cardScene != null)
+        {
+            var animatedCard = cardScene.Instantiate<Card>();
+            animatedCard.SetCard(cardToPlay.Color, cardToPlay.CardValue, cardToPlay.Type);
+            animatedCard.SetCardFront();
+            
+            // 設置初始位置（從手牌位置開始）
+            Vector2 startPos = Vector2.Zero;
+            if (playerHandUI != null && playerHandUI.GetChildCount() > 0)
+            {
+                // 找到選中卡牌在UI中的位置
+                for (int i = 0; i < playerHandUI.GetChildCount(); i++)
+                {
+                    var child = playerHandUI.GetChild(i);
+                    if (child is MarginContainer marginContainer && marginContainer.GetChild(0) is Card uiCard)
+                    {
+                        // 這是選中的卡牌（包裝在MarginContainer中）
+                        startPos = uiCard.GlobalPosition;
+                        break;
+                    }
+                    else if (child is Card cardNode)
+                    {
+                        // 檢查是否是選中的卡牌
+                        if (cardNode.Color == cardToPlay.Color && 
+                            cardNode.CardValue == cardToPlay.CardValue && 
+                            cardNode.Type == cardToPlay.Type)
+                        {
+                            startPos = cardNode.GlobalPosition;
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            // 如果找不到位置，使用默認位置
+            if (startPos == Vector2.Zero)
+            {
+                startPos = new Vector2(GetViewport().GetVisibleRect().Size.X / 2, GetViewport().GetVisibleRect().Size.Y - 100);
+            }
+            
+            // 設置目標位置（棄牌堆位置）
+            Vector2 targetPos = Vector2.Zero;
+            if (discardPileUI != null)
+            {
+                targetPos = discardPileUI.GlobalPosition;
+            }
+            else
+            {
+                // 使用屏幕中心作為備用目標位置
+                targetPos = new Vector2(GetViewport().GetVisibleRect().Size.X / 2, GetViewport().GetVisibleRect().Size.Y / 2);
+            }
+            
+            GD.Print($"出牌動畫: 從 {startPos} 到 {targetPos}");
+            
+            // 設置動畫卡牌的位置和屬性
+            animatedCard.GlobalPosition = startPos;
+            animatedCard.ZIndex = 1000; // 確保在最上層
+            animatedCard.Size = new Vector2(80, 120);
+            
+            // 添加到場景中
+            AddChild(animatedCard);
+            
+            // 創建動畫
+            var playCardTween = CreateTween();
+            playCardTween.SetParallel(true);
+            
+            // 位置動畫
+            float animationDuration = 0.8f;
+            playCardTween.TweenProperty(animatedCard, "global_position", targetPos, animationDuration)
+                .SetTrans(Tween.TransitionType.Sine)
+                .SetEase(Tween.EaseType.Out);
+            
+            // 旋轉動畫（翻牌效果）
+            playCardTween.TweenProperty(animatedCard, "rotation", Mathf.Pi * 0.1f, animationDuration * 0.3f)
+                .SetEase(Tween.EaseType.Out);
+            playCardTween.TweenProperty(animatedCard, "rotation", 0, animationDuration * 0.7f)
+                .SetDelay(animationDuration * 0.3f)
+                .SetEase(Tween.EaseType.In);
+            
+            // 縮放動畫（彈跳效果）
+            playCardTween.TweenProperty(animatedCard, "scale", Vector2.One * 1.2f, animationDuration * 0.3f)
+                .SetEase(Tween.EaseType.Out);
+            playCardTween.TweenProperty(animatedCard, "scale", Vector2.One, animationDuration * 0.7f)
+                .SetDelay(animationDuration * 0.3f)
+                .SetEase(Tween.EaseType.In);
+            
+            // 動畫完成後的回調
+            playCardTween.TweenCallback(Callable.From(() => {
+                GD.Print("出牌動畫完成");
+                OnPlayCardAnimationComplete(animatedCard, cardToPlay);
+            })).SetDelay(animationDuration);
+        }
+        else
+        {
+            GD.PrintErr("無法載入卡片場景");
+            // 如果動畫失敗，直接執行出牌邏輯
+            ExecutePlayCard(cardToPlay);
+        }
+    }
+    
+    private void OnPlayCardAnimationComplete(Card animatedCard, Card originalCard)
+    {
+        GD.Print("出牌動畫完成，執行出牌邏輯");
+        
+        // 移除動畫卡牌
+        animatedCard.QueueFree();
+        
+        // 執行實際的出牌邏輯
+        ExecutePlayCard(originalCard);
+    }
+    
+    private void ExecutePlayCard(Card cardToPlay)
+    {
+        GD.Print($"執行出牌邏輯: {cardToPlay.Color} {cardToPlay.CardValue}");
+        
         // 從玩家手牌中移除這張牌
         playerHand.Remove(cardToPlay);
         
