@@ -20,7 +20,7 @@ public partial class MainGame : Node2D
     // UI 引用
     private TextureRect drawPileUI;
     private TextureRect discardPileUI;
-    private HBoxContainer playerHandUI;
+    private Control playerHandUI; // 改為 Control 類型
     
     // 手牌滾動相關
     private Button leftScrollButton;
@@ -68,7 +68,7 @@ public partial class MainGame : Node2D
         // 獲取卡牌顯示區域引用
         drawPileUI = GetNode<TextureRect>("UILayer/UI/DrawPile");
         discardPileUI = GetNode<TextureRect>("UILayer/UI/CenterArea/DiscardPile");
-        playerHandUI = GetNode<HBoxContainer>("UILayer/UI/PlayerHand/ScrollContainer/CardsContainer");
+        playerHandUI = GetNode<Control>("UILayer/UI/PlayerHand/ScrollContainer/CardsContainer");
         
         // 獲取手牌滾動按鈕和容器
         leftScrollButton = GetNode<Button>("UILayer/UI/PlayerHand/LeftScrollButton");
@@ -341,6 +341,13 @@ public partial class MainGame : Node2D
         
         GD.Print($"清除了現有的手牌元素");
         
+        // 手動定位參數
+        float cardWidth = 80.0f;
+        float cardHeight = 120.0f;
+        float cardSpacing = 10.0f;
+        float startX = 0;
+        float baseY = 20; // 增加基礎Y位置，為往上移動留出空間
+        
         // 顯示玩家手牌
         for (int i = 0; i < playerHand.Count; i++)
         {
@@ -355,8 +362,34 @@ public partial class MainGame : Node2D
                 // 添加點擊事件
                 cardInstance.CardClicked += OnPlayerCardClicked;
                 
+                // 計算卡牌位置
+                float cardX = startX + i * (cardWidth + cardSpacing);
+                float cardY = baseY;
+                
+                // 檢查是否是選中的牌
+                if (selectedCard != null && 
+                    selectedCard.Color == card.Color && 
+                    selectedCard.CardValue == card.CardValue && 
+                    selectedCard.Type == card.Type)
+                {
+                    GD.Print($"=== 設置選中狀態 ===");
+                    GD.Print($"選中的牌: {card.Color} {card.CardValue}");
+                    
+                    // 選中的牌往上移動
+                    cardY = baseY - 20; // 往上移動20像素
+                    GD.Print($"已設置選中牌位置: ({cardX}, {cardY})");
+                }
+                else
+                {
+                    GD.Print($"非選中的牌: {card.Color} {card.CardValue}");
+                }
+                
+                // 設置卡牌位置和大小
+                cardInstance.Position = new Vector2(cardX, cardY);
+                cardInstance.Size = new Vector2(cardWidth, cardHeight);
+                
                 playerHandUI.AddChild(cardInstance);
-                GD.Print($"添加了手牌: {card.Color} {card.CardValue}");
+                GD.Print($"添加了手牌: {card.Color} {card.CardValue} 位置: ({cardX}, {cardY})");
             }
         }
         
@@ -443,8 +476,27 @@ public partial class MainGame : Node2D
     {
         GD.Print($"玩家點擊了手牌: {clickedCard.Color} {clickedCard.CardValue}");
         
+        // 如果點擊的是同一張牌，則取消選中
+        if (selectedCard != null && 
+            selectedCard.Color == clickedCard.Color && 
+            selectedCard.CardValue == clickedCard.CardValue && 
+            selectedCard.Type == clickedCard.Type)
+        {
+            GD.Print("取消選中這張牌");
+            selectedCard = null;
+            // 禁用出牌按鈕
+            if (playCardButton != null)
+            {
+                playCardButton.Disabled = true;
+            }
+            // 更新手牌顯示以重置所有牌的位置
+            UpdatePlayerHandDisplay();
+            return;
+        }
+        
         // 設置選中的手牌
         selectedCard = clickedCard;
+        GD.Print($"設置選中的牌: {selectedCard.Color} {selectedCard.CardValue}");
         
         // 檢查是否可以打出這張牌
         if (currentTopCard != null && clickedCard.CanPlayOn(currentTopCard))
@@ -465,6 +517,9 @@ public partial class MainGame : Node2D
                 playCardButton.Disabled = true;
             }
         }
+        
+        // 更新手牌顯示以顯示選中狀態
+        UpdatePlayerHandDisplay();
     }
     
     private void PlayCard(Card cardToPlay)
@@ -478,12 +533,12 @@ public partial class MainGame : Node2D
         discardPile.Add(cardToPlay);
         currentTopCard = cardToPlay;
         
+        // 清空選中的手牌
+        selectedCard = null;
+        
         // 更新顯示
         UpdatePlayerHandDisplay();
         UpdateDiscardPileDisplay();
-        
-        // 清空選中的手牌
-        selectedCard = null;
         
         // 禁用出牌按鈕
         if (playCardButton != null)

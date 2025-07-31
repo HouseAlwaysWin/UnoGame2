@@ -268,8 +268,9 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -40.0
-offset_top = -120.0
+offset_top = -150.0
 offset_right = 40.0
+offset_bottom = -30.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -290,8 +291,9 @@ anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 118.0
-offset_top = -120.0
+offset_top = -188.0
 offset_right = -182.0
+offset_bottom = -28.0
 grow_horizontal = 2
 grow_vertical = 0
 
@@ -311,7 +313,7 @@ size_flags_vertical = 3
 horizontal_scroll_mode = 2
 vertical_scroll_mode = 0
 
-[node name="CardsContainer" type="HBoxContainer" parent="UILayer/UI/PlayerHand/ScrollContainer"]
+[node name="CardsContainer" type="Control" parent="UILayer/UI/PlayerHand/ScrollContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -333,9 +335,9 @@ anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
 offset_left = -60.0
-offset_top = -310.0
+offset_top = -348.0
 offset_right = 60.0
-offset_bottom = -130.0
+offset_bottom = -168.0
 grow_horizontal = 2
 grow_vertical = 0
 
