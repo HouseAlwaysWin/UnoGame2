@@ -7,6 +7,7 @@ public partial class MainGame : Node2D
     private Button drawCardButton;
     private Button unoButton;
     private Button backToMenuButton;
+    private Button playCardButton; // 新增出牌按鈕
     private Panel colorSelectionPanel;
     private Button redButton, blueButton, greenButton, yellowButton;
     
@@ -27,6 +28,9 @@ public partial class MainGame : Node2D
     private ScrollContainer playerHandScrollContainer;
     private int currentHandScrollIndex = 0;
     private int maxVisibleCards = 8; // 最多顯示8張牌
+    
+    // 出牌相關
+    private Card selectedCard = null; // 當前選中的手牌
     
     // 動畫相關
     private bool isAnimating = false;
@@ -52,6 +56,7 @@ public partial class MainGame : Node2D
         drawCardButton = GetNode<Button>("UILayer/UI/ActionButtons/DrawCardButton");
         unoButton = GetNode<Button>("UILayer/UI/ActionButtons/UnoButton");
         backToMenuButton = GetNode<Button>("UILayer/UI/TopPanel/GameInfo/BackToMenuButton");
+        playCardButton = GetNode<Button>("UILayer/UI/ActionButtons/PlayCardButton"); // 獲取出牌按鈕
         
         // 獲取顏色選擇面板和按鈕
         colorSelectionPanel = GetNode<Panel>("UILayer/UI/ColorSelectionPanel");
@@ -78,6 +83,9 @@ public partial class MainGame : Node2D
         // 連接動作按鈕
         if (drawCardButton != null)
             drawCardButton.Pressed += OnDrawCardPressed;
+        
+        if (playCardButton != null)
+            playCardButton.Pressed += OnPlayCardPressed;
         
         if (unoButton != null)
             unoButton.Pressed += OnUnoPressed;
@@ -124,6 +132,30 @@ public partial class MainGame : Node2D
         else
         {
             GD.Print("抽牌堆已空！");
+        }
+    }
+    
+    private void OnPlayCardPressed()
+    {
+        GD.Print("出牌按鈕被按下");
+        
+        // 檢查是否有選中的手牌
+        if (selectedCard != null)
+        {
+            // 檢查是否可以打出這張牌
+            if (currentTopCard != null && selectedCard.CanPlayOn(currentTopCard))
+            {
+                GD.Print($"打出卡牌: {selectedCard.Color} {selectedCard.CardValue}");
+                PlayCard(selectedCard);
+            }
+            else
+            {
+                GD.Print("這張牌不能打出！");
+            }
+        }
+        else
+        {
+            GD.Print("請先選擇要打出的手牌");
         }
     }
     
@@ -411,15 +443,80 @@ public partial class MainGame : Node2D
     {
         GD.Print($"玩家點擊了手牌: {clickedCard.Color} {clickedCard.CardValue}");
         
+        // 設置選中的手牌
+        selectedCard = clickedCard;
+        
         // 檢查是否可以打出這張牌
         if (currentTopCard != null && clickedCard.CanPlayOn(currentTopCard))
         {
             GD.Print("可以打出這張牌！");
-            // 這裡可以添加出牌邏輯
+            // 啟用出牌按鈕
+            if (playCardButton != null)
+            {
+                playCardButton.Disabled = false;
+            }
         }
         else
         {
             GD.Print("這張牌不能打出");
+            // 禁用出牌按鈕
+            if (playCardButton != null)
+            {
+                playCardButton.Disabled = true;
+            }
+        }
+    }
+    
+    private void PlayCard(Card cardToPlay)
+    {
+        GD.Print($"開始出牌: {cardToPlay.Color} {cardToPlay.CardValue}");
+        
+        // 從玩家手牌中移除這張牌
+        playerHand.Remove(cardToPlay);
+        
+        // 將牌添加到棄牌堆
+        discardPile.Add(cardToPlay);
+        currentTopCard = cardToPlay;
+        
+        // 更新顯示
+        UpdatePlayerHandDisplay();
+        UpdateDiscardPileDisplay();
+        
+        // 清空選中的手牌
+        selectedCard = null;
+        
+        // 禁用出牌按鈕
+        if (playCardButton != null)
+        {
+            playCardButton.Disabled = true;
+        }
+        
+        GD.Print($"出牌完成，剩餘手牌: {playerHand.Count} 張");
+    }
+    
+    private void UpdateDiscardPileDisplay()
+    {
+        if (discardPileUI != null && currentTopCard != null)
+        {
+            // 清除現有的子節點
+            foreach (Node child in discardPileUI.GetChildren())
+            {
+                child.QueueFree();
+            }
+            
+            // 創建頂牌實例
+            var cardScene = ResourceLoader.Load<PackedScene>("res://scenes/card.tscn");
+            if (cardScene != null)
+            {
+                var topCardInstance = cardScene.Instantiate<Card>();
+                topCardInstance.SetCard(currentTopCard.Color, currentTopCard.CardValue, currentTopCard.Type);
+                topCardInstance.SetCardFront();
+                
+                // 將頂牌添加到UI
+                discardPileUI.AddChild(topCardInstance);
+                
+                GD.Print($"更新頂牌顯示: {currentTopCard.Color} {currentTopCard.CardValue}");
+            }
         }
     }
 
@@ -464,6 +561,12 @@ public partial class MainGame : Node2D
         
         // 通過動畫發放初始手牌
         StartInitialDealAnimation();
+        
+        // 初始化按鈕狀態
+        if (playCardButton != null)
+        {
+            playCardButton.Disabled = true; // 初始時禁用出牌按鈕
+        }
         
         GD.Print($"初始化完成 - 抽牌堆: {drawPile.Count}張, 頂牌: 1張");
     }

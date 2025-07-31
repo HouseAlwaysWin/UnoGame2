@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3 uid="uid://b6hppl38rx8ua"]
+[gd_scene load_steps=28 format=3 uid="uid://b6hppl38rx8ua"]
 
 [ext_resource type="Texture2D" uid="uid://gaix45ad7hgs" path="res://assets/background.png" id="1_background"]
 [ext_resource type="Script" uid="uid://bttfxt2arqx1k" path="res://scripts/MainGame.cs" id="1_main"]
@@ -19,6 +19,69 @@ corner_radius_bottom_left = 10
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_Button"]
 bg_color = Color(0.2, 0.3, 0.4, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_GreenButtonHover"]
+bg_color = Color(0.3, 1, 0.3, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_GreenButtonPressed"]
+bg_color = Color(0.1, 0.6, 0.1, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_GreenButton"]
+bg_color = Color(0.2, 0.8, 0.2, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_RedButtonHover"]
+bg_color = Color(1, 0.3, 0.3, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_RedButtonPressed"]
+bg_color = Color(0.6, 0.1, 0.1, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_RedButton"]
+bg_color = Color(0.8, 0.2, 0.2, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_YellowButtonHover"]
+bg_color = Color(1, 1, 0.3, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_YellowButtonPressed"]
+bg_color = Color(0.6, 0.6, 0.1, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_YellowButton"]
+bg_color = Color(0.8, 0.8, 0.2, 1)
 corner_radius_top_left = 10
 corner_radius_top_right = 10
 corner_radius_bottom_right = 10
@@ -205,9 +268,8 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -40.0
-offset_top = -60.0
+offset_top = -120.0
 offset_right = 40.0
-offset_bottom = 60.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -227,9 +289,9 @@ anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 20.0
+offset_left = 118.0
 offset_top = -120.0
-offset_right = -20.0
+offset_right = -182.0
 grow_horizontal = 2
 grow_vertical = 0
 
@@ -271,26 +333,43 @@ anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
 offset_left = -60.0
-offset_top = -230.0
+offset_top = -310.0
 offset_right = 60.0
-offset_bottom = -50.0
+offset_bottom = -130.0
 grow_horizontal = 2
 grow_vertical = 0
 
 [node name="DrawCardButton" type="Button" parent="UILayer/UI/ActionButtons"]
 custom_minimum_size = Vector2(120, 40)
 layout_mode = 2
-theme_override_styles/hover = SubResource("StyleBoxFlat_ButtonHover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_ButtonPressed")
-theme_override_styles/normal = SubResource("StyleBoxFlat_Button")
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_styles/hover = SubResource("StyleBoxFlat_GreenButtonHover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_GreenButtonPressed")
+theme_override_styles/normal = SubResource("StyleBoxFlat_GreenButton")
 text = "抽牌"
+
+[node name="PlayCardButton" type="Button" parent="UILayer/UI/ActionButtons"]
+custom_minimum_size = Vector2(120, 40)
+layout_mode = 2
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_styles/hover = SubResource("StyleBoxFlat_RedButtonHover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_RedButtonPressed")
+theme_override_styles/normal = SubResource("StyleBoxFlat_RedButton")
+text = "出牌"
 
 [node name="UnoButton" type="Button" parent="UILayer/UI/ActionButtons"]
 custom_minimum_size = Vector2(120, 40)
 layout_mode = 2
-theme_override_styles/hover = SubResource("StyleBoxFlat_ButtonHover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_ButtonPressed")
-theme_override_styles/normal = SubResource("StyleBoxFlat_Button")
+theme_override_colors/font_hover_color = Color(0.2, 0.2, 0.2, 1)
+theme_override_colors/font_color = Color(0.2, 0.2, 0.2, 1)
+theme_override_colors/font_pressed_color = Color(0.2, 0.2, 0.2, 1)
+theme_override_styles/hover = SubResource("StyleBoxFlat_YellowButtonHover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_YellowButtonPressed")
+theme_override_styles/normal = SubResource("StyleBoxFlat_YellowButton")
 text = "喊UNO!"
 
 [node name="ColorSelectionPanel" type="Panel" parent="UILayer/UI"]
