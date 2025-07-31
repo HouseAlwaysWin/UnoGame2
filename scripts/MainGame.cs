@@ -20,11 +20,9 @@ public partial class MainGame : Node2D
     // UI 引用
     private TextureRect drawPileUI;
     private TextureRect discardPileUI;
-    private Control playerHandUI; // 改為 Control 類型
+    private HBoxContainer playerHandUI; // 改回 HBoxContainer 類型
     
     // 手牌滾動相關
-    private Button leftScrollButton;
-    private Button rightScrollButton;
     private ScrollContainer playerHandScrollContainer;
     private int currentHandScrollIndex = 0;
     private int maxVisibleCards = 8; // 最多顯示8張牌
@@ -68,11 +66,9 @@ public partial class MainGame : Node2D
         // 獲取卡牌顯示區域引用
         drawPileUI = GetNode<TextureRect>("UILayer/UI/DrawPile");
         discardPileUI = GetNode<TextureRect>("UILayer/UI/CenterArea/DiscardPile");
-        playerHandUI = GetNode<Control>("UILayer/UI/PlayerHand/ScrollContainer/CardsContainer");
+        playerHandUI = GetNode<HBoxContainer>("UILayer/UI/PlayerHand/ScrollContainer/CardsContainer");
         
         // 獲取手牌滾動按鈕和容器
-        leftScrollButton = GetNode<Button>("UILayer/UI/PlayerHand/LeftScrollButton");
-        rightScrollButton = GetNode<Button>("UILayer/UI/PlayerHand/RightScrollButton");
         playerHandScrollContainer = GetNode<ScrollContainer>("UILayer/UI/PlayerHand/ScrollContainer");
     }
     
@@ -107,11 +103,7 @@ public partial class MainGame : Node2D
             yellowButton.Pressed += () => OnColorSelected("黃色");
         
         // 連接滾動按鈕
-        if (leftScrollButton != null)
-            leftScrollButton.Pressed += OnLeftScrollPressed;
-        
-        if (rightScrollButton != null)
-            rightScrollButton.Pressed += OnRightScrollPressed;
+        // 移除對左右滾動按鈕的引用和相關代碼
     }
 
     private void OnDrawCardPressed()
@@ -333,20 +325,13 @@ public partial class MainGame : Node2D
         // 清除現有的手牌顯示
         foreach (Node child in playerHandUI.GetChildren())
         {
-            if (child is Card)
+            if (child is Card || child is MarginContainer)
             {
                 child.QueueFree();
             }
         }
         
         GD.Print($"清除了現有的手牌元素");
-        
-        // 手動定位參數
-        float cardWidth = 80.0f;
-        float cardHeight = 120.0f;
-        float cardSpacing = 10.0f;
-        float startX = 0;
-        float baseY = 20; // 增加基礎Y位置，為往上移動留出空間
         
         // 顯示玩家手牌
         for (int i = 0; i < playerHand.Count; i++)
@@ -362,10 +347,6 @@ public partial class MainGame : Node2D
                 // 添加點擊事件
                 cardInstance.CardClicked += OnPlayerCardClicked;
                 
-                // 計算卡牌位置
-                float cardX = startX + i * (cardWidth + cardSpacing);
-                float cardY = baseY;
-                
                 // 檢查是否是選中的牌
                 if (selectedCard != null && 
                     selectedCard.Color == card.Color && 
@@ -375,21 +356,21 @@ public partial class MainGame : Node2D
                     GD.Print($"=== 設置選中狀態 ===");
                     GD.Print($"選中的牌: {card.Color} {card.CardValue}");
                     
-                    // 選中的牌往上移動
-                    cardY = baseY - 20; // 往上移動20像素
-                    GD.Print($"已設置選中牌位置: ({cardX}, {cardY})");
+                    // 為選中的牌創建 MarginContainer 來實現向上移動
+                    var marginContainer = new MarginContainer();
+                    marginContainer.AddThemeConstantOverride("margin_top", -20); // 向上移動20像素
+                    marginContainer.AddChild(cardInstance);
+                    playerHandUI.AddChild(marginContainer);
+                    
+                    GD.Print($"已為選中牌創建 MarginContainer，向上移動20像素");
                 }
                 else
                 {
                     GD.Print($"非選中的牌: {card.Color} {card.CardValue}");
+                    playerHandUI.AddChild(cardInstance);
                 }
                 
-                // 設置卡牌位置和大小
-                cardInstance.Position = new Vector2(cardX, cardY);
-                cardInstance.Size = new Vector2(cardWidth, cardHeight);
-                
-                playerHandUI.AddChild(cardInstance);
-                GD.Print($"添加了手牌: {card.Color} {card.CardValue} 位置: ({cardX}, {cardY})");
+                GD.Print($"添加了手牌: {card.Color} {card.CardValue}");
             }
         }
         
@@ -401,60 +382,13 @@ public partial class MainGame : Node2D
     
     private void UpdateScrollButtons()
     {
-        if (leftScrollButton != null && rightScrollButton != null)
+        if (playerHandScrollContainer != null)
         {
             // 計算滾動範圍
             int totalCards = playerHand.Count;
             int maxScrollIndex = Math.Max(0, totalCards - maxVisibleCards);
             
-            // 更新按鈕可見性
-            leftScrollButton.Visible = currentHandScrollIndex > 0;
-            rightScrollButton.Visible = currentHandScrollIndex < maxScrollIndex;
-            
-            // 更新按鈕可用性
-            leftScrollButton.Disabled = currentHandScrollIndex <= 0;
-            rightScrollButton.Disabled = currentHandScrollIndex >= maxScrollIndex;
-            
             GD.Print($"滾動狀態: 當前索引={currentHandScrollIndex}, 最大索引={maxScrollIndex}, 總牌數={totalCards}");
-        }
-    }
-    
-    private void OnLeftScrollPressed()
-    {
-        if (currentHandScrollIndex > 0)
-        {
-            currentHandScrollIndex--;
-            UpdateHandScrollPosition();
-            GD.Print($"向左滾動，當前索引: {currentHandScrollIndex}");
-        }
-    }
-    
-    private void OnRightScrollPressed()
-    {
-        int maxScrollIndex = Math.Max(0, playerHand.Count - maxVisibleCards);
-        if (currentHandScrollIndex < maxScrollIndex)
-        {
-            currentHandScrollIndex++;
-            UpdateHandScrollPosition();
-            GD.Print($"向右滾動，當前索引: {currentHandScrollIndex}");
-        }
-    }
-    
-    private void UpdateHandScrollPosition()
-    {
-        if (playerHandScrollContainer != null)
-        {
-            // 計算滾動位置 - 每次移動一張卡的完整距離
-            float cardWidth = 80.0f; // 卡牌寬度
-            float cardSpacing = 10.0f; // 卡牌間距
-            float totalCardWidth = cardWidth + cardSpacing; // 每張卡佔用的總寬度
-            float scrollOffset = currentHandScrollIndex * totalCardWidth;
-            
-            // 設置滾動位置
-            playerHandScrollContainer.ScrollHorizontal = (int)scrollOffset;
-            
-            // 更新按鈕狀態
-            UpdateScrollButtons();
         }
     }
     
