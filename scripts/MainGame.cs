@@ -123,6 +123,7 @@ public partial class MainGame : Node2D
     // 動畫相關
     private bool isAnimating = false;
     private Tween currentTween;
+    private CardAnimationManager cardAnimationManager;
 
     public override void _Ready()
     {
@@ -133,6 +134,10 @@ public partial class MainGame : Node2D
 
         // 連接按鈕信號
         ConnectButtonSignals();
+
+        // 創建卡牌動畫管理器
+        cardAnimationManager = new CardAnimationManager();
+        AddChild(cardAnimationManager);
 
         // 初始化遊戲邏輯
         InitializeGame();
@@ -1524,94 +1529,30 @@ public partial class MainGame : Node2D
         var cardToDraw = drawPile[0];
         drawPile.RemoveAt(0);
 
-        // 創建動畫卡牌實例
-        var cardScene = ResourceLoader.Load<PackedScene>("res://scenes/card.tscn");
-        if (cardScene != null)
+        // 計算起始位置（從抽牌堆位置開始）
+        Vector2 startPos = drawPileUI.GlobalPosition + drawPileUI.Size / 2;
+
+        // 計算目標位置（玩家手牌區域的特定位置）
+        Vector2 targetPos;
+        float cardWidth = 80.0f;
+        float cardSpacing = 10.0f;
+        float startX = playerHandUI.GlobalPosition.X + cardWidth / 2;
+        float targetX = startX + (cardIndex * (cardWidth + cardSpacing));
+        targetPos = new Vector2(targetX, playerHandUI.GlobalPosition.Y + playerHandUI.Size.Y / 2);
+
+        // 如果目標位置計算有問題，使用固定位置
+        if (targetPos.X == 0 || targetPos.Y == 0)
         {
-            var animatedCard = cardScene.Instantiate<Card>();
-            animatedCard.SetCard(cardToDraw.Color, cardToDraw.CardValue, cardToDraw.Type);
-            animatedCard.SetCardBack(); // 開始時顯示背面
+            targetPos = new Vector2(GetViewport().GetVisibleRect().Size.X / 2, GetViewport().GetVisibleRect().Size.Y - 100);
+            GD.Print($"使用備用目標位置: {targetPos}");
+        }
 
-            // 將動畫卡牌添加到UI層級中
-            var uiLayer = GetNode<CanvasLayer>("UILayer");
-            uiLayer.AddChild(animatedCard);
-
-            // 設置動畫卡牌的大小和屬性
-            animatedCard.Size = new Vector2(80, 120); // 設置固定大小
-            animatedCard.Visible = true; // 確保可見
-            animatedCard.Modulate = new Color(1, 1, 1, 1); // 確保不透明度為1
-
-            // 設置初始位置（從抽牌堆位置開始）
-            Vector2 startPos = drawPileUI.GlobalPosition + drawPileUI.Size / 2;
-            animatedCard.GlobalPosition = startPos;
-            animatedCard.ZIndex = 1000; // 確保在最上層
-
-            GD.Print($"初始發牌動畫卡牌初始位置: {startPos}");
-
-            // 計算目標位置（玩家手牌區域的特定位置）
-            Vector2 targetPos;
-            float cardWidth = 80.0f;
-            float cardSpacing = 10.0f;
-            float startX = playerHandUI.GlobalPosition.X + cardWidth / 2;
-            float targetX = startX + (cardIndex * (cardWidth + cardSpacing));
-            targetPos = new Vector2(targetX, playerHandUI.GlobalPosition.Y + playerHandUI.Size.Y / 2);
-
-            GD.Print($"初始發牌動畫卡牌目標位置: {targetPos}, 第 {cardIndex + 1} 張牌");
-
-            // 如果目標位置計算有問題，使用固定位置
-            if (targetPos.X == 0 || targetPos.Y == 0)
+        // 使用CardAnimationManager創建動畫
+        if (cardAnimationManager != null)
+        {
+            cardAnimationManager.CreateDealCardAnimation(cardToDraw, startPos, targetPos, cardIndex, () =>
             {
-                // 使用屏幕中心作為備用目標位置
-                targetPos = new Vector2(GetViewport().GetVisibleRect().Size.X / 2, GetViewport().GetVisibleRect().Size.Y - 100);
-                GD.Print($"使用備用目標位置: {targetPos}");
-            }
-
-            // 創建動畫軌跡（拋物線效果）
-            Vector2 controlPoint = new Vector2(
-                (startPos.X + targetPos.X) / 2,
-                Math.Min(startPos.Y, targetPos.Y) - 100 // 向上拋物線
-            );
-
-            GD.Print($"初始發牌動畫控制點位置: {controlPoint}");
-
-            // 創建動畫
-            var dealTween = CreateTween();
-            dealTween.SetParallel(true);
-
-            // 使用簡化的位置動畫
-            float animationDuration = 0.8f;
-            dealTween.TweenProperty(animatedCard, "global_position", targetPos, animationDuration)
-                .SetTrans(Tween.TransitionType.Sine)
-                .SetEase(Tween.EaseType.Out);
-
-            GD.Print($"開始初始發牌動畫: 從 {startPos} 到 {targetPos}, 持續時間: {animationDuration}秒");
-
-            // 旋轉動畫（翻牌效果）
-            dealTween.TweenProperty(animatedCard, "rotation", Mathf.Pi, 0.4f)
-                .SetDelay(0.2f)
-                .SetEase(Tween.EaseType.InOut);
-
-            // 縮放動畫（彈跳效果）
-            dealTween.TweenProperty(animatedCard, "scale", Vector2.One * 1.2f, 0.3f)
-                .SetEase(Tween.EaseType.Out);
-            dealTween.TweenProperty(animatedCard, "scale", Vector2.One, 0.3f)
-                .SetDelay(0.3f)
-                .SetEase(Tween.EaseType.In);
-
-            // 在翻牌時顯示正面
-            dealTween.TweenCallback(Callable.From(() =>
-            {
-                animatedCard.SetCardFront();
-                GD.Print($"第 {cardIndex + 1} 張卡牌翻轉到正面");
-            })).SetDelay(0.4f);
-
-            // 動畫完成後的回調
-            dealTween.TweenCallback(Callable.From(() =>
-            {
-                GD.Print($"第 {cardIndex + 1} 張初始發牌動畫完成");
-                // 移除動畫卡牌
-                animatedCard.QueueFree();
-
+                // 動畫完成後的回調
                 // 將牌添加到玩家手牌
                 playerHand.Add(cardToDraw);
 
@@ -1627,11 +1568,18 @@ public partial class MainGame : Node2D
                 {
                     DealInitialCardWithAnimation(cardIndex + 1);
                 })).SetDelay(0.2f);
-            })).SetDelay(animationDuration);
+            });
         }
         else
         {
-            GD.PrintErr("無法載入卡片場景");
+            GD.PrintErr("CardAnimationManager 未初始化");
+            // 備用方案：直接添加牌到手牌
+            playerHand.Add(cardToDraw);
+            UpdatePlayerHandDisplay();
+            UpdateDrawPileDisplay();
+            
+            // 繼續發下一張牌
+            DealInitialCardWithAnimation(cardIndex + 1);
         }
     }
 
