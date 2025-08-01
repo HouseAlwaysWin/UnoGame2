@@ -613,6 +613,12 @@ public partial class MainGame : Node2D
             playCardButton.Disabled = true;
         }
         
+        // 檢查是否是萬能牌，如果是則顯示顏色選擇面板
+        if (cardToPlay.Type == CardType.Wild || cardToPlay.Type == CardType.WildDrawFour)
+        {
+            ShowColorSelectionPanel();
+        }
+        
         GD.Print($"出牌完成，剩餘手牌: {playerHand.Count} 張");
     }
     
@@ -654,15 +660,53 @@ public partial class MainGame : Node2D
         GetTree().ChangeSceneToFile("res://scenes/main_screen.tscn");
     }
 
+    private void ShowColorSelectionPanel()
+    {
+        GD.Print("顯示顏色選擇面板");
+        if (colorSelectionPanel != null)
+        {
+            colorSelectionPanel.Visible = true;
+            // 禁用其他按鈕，強制玩家選擇顏色
+            if (drawCardButton != null) drawCardButton.Disabled = true;
+            if (playCardButton != null) playCardButton.Disabled = true;
+            if (unoButton != null) unoButton.Disabled = true;
+        }
+    }
+    
     private void OnColorSelected(string color)
     {
         GD.Print($"選擇顏色: {color}");
+        
         // 隱藏顏色選擇面板
         if (colorSelectionPanel != null)
         {
             colorSelectionPanel.Visible = false;
         }
-        // 這裡添加顏色選擇後的遊戲邏輯
+        
+        // 重新啟用其他按鈕
+        if (drawCardButton != null) drawCardButton.Disabled = false;
+        if (playCardButton != null) playCardButton.Disabled = true; // 出牌按鈕保持禁用，直到選擇新牌
+        if (unoButton != null) unoButton.Disabled = false;
+        
+        // 更新當前頂牌的顏色（萬能牌會改變顏色）
+        if (currentTopCard != null && (currentTopCard.Type == CardType.Wild || currentTopCard.Type == CardType.WildDrawFour))
+        {
+            // 創建一個新的頂牌實例，使用選擇的顏色
+            var newTopCard = new Card();
+            newTopCard.SetCard(GetCardColorFromString(color.ToLower()), currentTopCard.CardValue, currentTopCard.Type);
+            
+            // 更新棄牌堆中的頂牌
+            if (discardPile.Count > 0)
+            {
+                discardPile[discardPile.Count - 1] = newTopCard;
+            }
+            currentTopCard = newTopCard;
+            
+            // 更新顯示
+            UpdateDiscardPileDisplay();
+            
+            GD.Print($"萬能牌顏色已更改為: {color}");
+        }
     }
 
     private void InitializeGame()
@@ -688,6 +732,12 @@ public partial class MainGame : Node2D
         if (playCardButton != null)
         {
             playCardButton.Disabled = true; // 初始時禁用出牌按鈕
+        }
+        
+        // 隱藏顏色選擇面板
+        if (colorSelectionPanel != null)
+        {
+            colorSelectionPanel.Visible = false;
         }
         
         GD.Print($"初始化完成 - 抽牌堆: {drawPile.Count}張, 頂牌: 1張");
