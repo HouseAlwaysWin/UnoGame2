@@ -215,6 +215,40 @@ public partial class MainGame : Node2D
             return;
         }
 
+        // 檢查抽牌堆是否為空，如果為空則重新洗牌
+        if (drawPile.Count == 0)
+        {
+            GD.Print("抽牌堆已空，重新洗牌");
+            AddMessage("抽牌堆已空，重新洗牌");
+            
+            // 將棄牌堆的牌（除了頂牌）重新洗牌
+            if (discardPile.Count > 1)
+            {
+                var cardsToShuffle = new List<Card>(discardPile);
+                cardsToShuffle.RemoveAt(cardsToShuffle.Count - 1); // 移除頂牌
+                
+                // 重新洗牌
+                var random = new Random();
+                for (int i = cardsToShuffle.Count - 1; i > 0; i--)
+                {
+                    int j = random.Next(i + 1);
+                    var temp = cardsToShuffle[i];
+                    cardsToShuffle[i] = cardsToShuffle[j];
+                    cardsToShuffle[j] = temp;
+                }
+                
+                // 將洗好的牌放回抽牌堆
+                drawPile.AddRange(cardsToShuffle);
+                
+                // 清空棄牌堆（除了頂牌）
+                discardPile.Clear();
+                discardPile.Add(currentTopCard);
+                
+                GD.Print($"重新洗牌完成，抽牌堆: {drawPile.Count}張");
+                AddMessage($"重新洗牌完成，抽牌堆: {drawPile.Count}張");
+            }
+        }
+
         if (drawPile.Count > 0)
         {
             // 開始發牌動畫
@@ -222,7 +256,8 @@ public partial class MainGame : Node2D
         }
         else
         {
-            GD.Print("抽牌堆已空！");
+            GD.Print("抽牌堆仍然為空，無法抽牌");
+            AddMessage("抽牌堆仍然為空，無法抽牌");
         }
     }
 
@@ -416,18 +451,16 @@ public partial class MainGame : Node2D
         // 重置狀態
         isAnimating = false;
         
-        // 重新啟用人類玩家按鈕（因為抽牌後保持人類玩家回合）
-        if (drawCardButton != null) drawCardButton.Disabled = false;
-        if (playCardButton != null) playCardButton.Disabled = true; // 出牌按鈕需要選擇牌後才啟用
-        if (unoButton != null) unoButton.Disabled = false;
+        // 注意：按鈕狀態會在 NextPlayer() 方法中正確設置
+        // 這裡不需要重新啟用按鈕，因為 NextPlayer() 會根據當前玩家設置正確的按鈕狀態
 
         // 更新遊戲狀態顯示
         UpdateGameStatusDisplay();
 
         GD.Print($"抽牌完成，玩家手牌: {playerHand.Count} 張，抽牌堆剩餘: {drawPile.Count} 張");
 
-        // 抽牌後保持人類玩家回合，不輪換玩家
-        // NextPlayer(); // 註釋掉這行，保持人類玩家回合
+        // 抽牌後輪換到下一個玩家（標準 UNO 規則）
+        NextPlayer();
     }
 
     private void UpdatePlayerHandDisplay()
@@ -1162,6 +1195,40 @@ public partial class MainGame : Node2D
                 GD.Print($"電腦玩家 {computerPlayer.PlayerName} 沒有可以打出的牌，抽一張牌");
                 AddMessage($"{computerPlayer.PlayerName} 沒有可以打出的牌，抽一張牌");
 
+                // 檢查抽牌堆是否為空，如果為空則重新洗牌
+                if (drawPile.Count == 0)
+                {
+                    GD.Print("抽牌堆已空，重新洗牌");
+                    AddMessage("抽牌堆已空，重新洗牌");
+                    
+                    // 將棄牌堆的牌（除了頂牌）重新洗牌
+                    if (discardPile.Count > 1)
+                    {
+                        var cardsToShuffle = new List<Card>(discardPile);
+                        cardsToShuffle.RemoveAt(cardsToShuffle.Count - 1); // 移除頂牌
+                        
+                        // 重新洗牌
+                        var random = new Random();
+                        for (int i = cardsToShuffle.Count - 1; i > 0; i--)
+                        {
+                            int j = random.Next(i + 1);
+                            var temp = cardsToShuffle[i];
+                            cardsToShuffle[i] = cardsToShuffle[j];
+                            cardsToShuffle[j] = temp;
+                        }
+                        
+                        // 將洗好的牌放回抽牌堆
+                        drawPile.AddRange(cardsToShuffle);
+                        
+                        // 清空棄牌堆（除了頂牌）
+                        discardPile.Clear();
+                        discardPile.Add(currentTopCard);
+                        
+                        GD.Print($"重新洗牌完成，抽牌堆: {drawPile.Count}張");
+                        AddMessage($"重新洗牌完成，抽牌堆: {drawPile.Count}張");
+                    }
+                }
+
                 // 電腦玩家抽一張牌
                 if (drawPile.Count > 0)
                 {
@@ -1170,6 +1237,11 @@ public partial class MainGame : Node2D
                     computerPlayer.Hand.Add(drawnCard);
                     GD.Print($"電腦玩家 {computerPlayer.PlayerName} 抽到: {drawnCard.Color} {drawnCard.CardValue}");
                     AddMessage($"{computerPlayer.PlayerName} 抽到: {GetColorText(drawnCard.Color)} {drawnCard.CardValue}");
+                }
+                else
+                {
+                    GD.Print("抽牌堆仍然為空，無法抽牌");
+                    AddMessage("抽牌堆仍然為空，無法抽牌");
                 }
 
                 // 輪換到下一個玩家
