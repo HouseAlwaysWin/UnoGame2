@@ -2,6 +2,79 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
+// 電腦玩家類
+public class ComputerPlayer
+{
+    public int PlayerId { get; set; }
+    public string PlayerName { get; set; }
+    public List<Card> Hand { get; set; } = new List<Card>();
+    
+    public ComputerPlayer(int id)
+    {
+        PlayerId = id;
+        PlayerName = $"電腦玩家{id}";
+    }
+    
+    // 電腦玩家的出牌邏輯
+    public Card ChooseCardToPlay(Card topCard)
+    {
+        GD.Print($"電腦玩家 {PlayerName} 開始選擇要出的牌");
+        GD.Print($"手牌數量: {Hand.Count}");
+        GD.Print($"頂牌: {topCard?.Color} {topCard?.CardValue}");
+        
+        // 簡單的AI邏輯：找到第一張可以出的牌
+        foreach (var card in Hand)
+        {
+            GD.Print($"檢查手牌: {card.Color} {card.CardValue}");
+            if (card.CanPlayOn(topCard))
+            {
+                GD.Print($"找到可以出的牌: {card.Color} {card.CardValue}");
+                return card;
+            }
+            else
+            {
+                GD.Print($"這張牌不能出: {card.Color} {card.CardValue}");
+            }
+        }
+        GD.Print("沒有找到可以出的牌");
+        return null; // 沒有可以出的牌
+    }
+    
+    // 電腦玩家的顏色選擇邏輯（用於萬能牌）
+    public CardColor ChooseColor()
+    {
+        // 簡單的AI邏輯：選擇手牌中最多的顏色
+        var colorCounts = new Dictionary<CardColor, int>();
+        colorCounts[CardColor.Red] = 0;
+        colorCounts[CardColor.Blue] = 0;
+        colorCounts[CardColor.Green] = 0;
+        colorCounts[CardColor.Yellow] = 0;
+        
+        foreach (var card in Hand)
+        {
+            if (card.Type == CardType.Number || card.Type == CardType.Skip || 
+                card.Type == CardType.Reverse || card.Type == CardType.DrawTwo)
+            {
+                colorCounts[card.Color]++;
+            }
+        }
+        
+        // 找到最多的顏色
+        CardColor bestColor = CardColor.Red;
+        int maxCount = 0;
+        foreach (var kvp in colorCounts)
+        {
+            if (kvp.Value > maxCount)
+            {
+                maxCount = kvp.Value;
+                bestColor = kvp.Key;
+            }
+        }
+        
+        return bestColor;
+    }
+}
+
 public partial class MainGame : Node2D
 {
     private Button drawCardButton;
@@ -16,6 +89,11 @@ public partial class MainGame : Node2D
     private List<Card> discardPile = new List<Card>(); // 棄牌堆
     private List<Card> playerHand = new List<Card>(); // 玩家手牌
     private Card currentTopCard; // 當前頂牌
+    
+    // 玩家管理
+    public int PlayerCount { get; set; } = 4; // 遊玩人數，預設4人
+    private List<ComputerPlayer> computerPlayers = new List<ComputerPlayer>(); // 電腦玩家列表
+    private int currentPlayerIndex = 0; // 當前玩家索引（0為人類玩家）
     
     // UI 引用
     private TextureRect drawPileUI;
@@ -324,12 +402,16 @@ public partial class MainGame : Node2D
         
         // 重置狀態
         isAnimating = false;
-        drawCardButton.Disabled = false;
+        // 注意：按鈕狀態會在 NextPlayer() 方法中正確設置
+        // 這裡不需要重新啟用按鈕，因為 NextPlayer() 會根據當前玩家設置正確的按鈕狀態
         
         // 更新遊戲狀態顯示
         UpdateGameStatusDisplay();
         
         GD.Print($"抽牌完成，玩家手牌: {playerHand.Count} 張，抽牌堆剩餘: {drawPile.Count} 張");
+        
+        // 輪換到下一個玩家
+        NextPlayer();
     }
     
     private void UpdatePlayerHandDisplay()
@@ -631,6 +713,12 @@ public partial class MainGame : Node2D
         {
             ShowColorSelectionPanel();
         }
+        else
+        {
+            // 如果不是萬能牌，直接處理特殊牌效果並輪換到下一個玩家
+            HandleSpecialCardEffect(cardToPlay);
+            NextPlayer();
+        }
         
         GD.Print($"出牌完成，剩餘手牌: {playerHand.Count} 張");
         
@@ -718,10 +806,8 @@ public partial class MainGame : Node2D
                 colorSelectionPanel.Visible = false;
             }
             
-            // 重新啟用其他按鈕
-            if (drawCardButton != null) drawCardButton.Disabled = false;
-            if (playCardButton != null) playCardButton.Disabled = true; // 出牌按鈕保持禁用，直到選擇新牌
-            if (unoButton != null) unoButton.Disabled = false;
+            // 注意：按鈕狀態會在 NextPlayer() 方法中正確設置
+            // 這裡不需要重新啟用按鈕，因為 NextPlayer() 會根據當前玩家設置正確的按鈕狀態
             
             // 更新當前頂牌的顏色（萬能牌會改變顏色）
             if (currentTopCard != null && (currentTopCard.Type == CardType.Wild || currentTopCard.Type == CardType.WildDrawFour))
@@ -744,13 +830,20 @@ public partial class MainGame : Node2D
                 
                 // 更新遊戲狀態顯示
                 UpdateGameStatusDisplay();
+                
+                // 處理特殊牌效果並輪換到下一個玩家
+                HandleSpecialCardEffect(currentTopCard);
+                NextPlayer();
             }
                 })).SetDelay(1.0f); // 延遲1秒
     }
 
     private void InitializeGame()
     {
-        GD.Print("初始化UNO遊戲...");
+        GD.Print($"初始化UNO遊戲... 遊玩人數: {PlayerCount}人");
+        
+        // 創建電腦玩家
+        CreateComputerPlayers();
         
         // 創建完整的UNO牌組
         CreateDeck();
@@ -779,14 +872,45 @@ public partial class MainGame : Node2D
             colorSelectionPanel.Visible = false;
         }
         
-        GD.Print($"初始化完成 - 抽牌堆: {drawPile.Count}張, 頂牌: 1張");
+        // 隨機選擇第一個玩家（0-3，其中0是人類玩家）
+        var random = new Random();
+        currentPlayerIndex = random.Next(0, PlayerCount);
+        GD.Print($"隨機選擇第一個玩家: {GetCurrentPlayerName()}");
+        
+        GD.Print($"初始化完成 - 抽牌堆: {drawPile.Count}張, 頂牌: 1張, 電腦玩家: {computerPlayers.Count}個");
         
         // 更新遊戲狀態顯示
         UpdateGameStatusDisplay();
     }
     
+    private void CreateComputerPlayers()
+    {
+        GD.Print($"創建電腦玩家... 總人數: {PlayerCount}人");
+        
+        // 清空現有電腦玩家
+        computerPlayers.Clear();
+        
+        // 創建電腦玩家（總人數減去1個人類玩家）
+        for (int i = 1; i < PlayerCount; i++)
+        {
+            var computerPlayer = new ComputerPlayer(i);
+            computerPlayers.Add(computerPlayer);
+            GD.Print($"創建電腦玩家: {computerPlayer.PlayerName}");
+        }
+        
+        GD.Print($"電腦玩家創建完成，共 {computerPlayers.Count} 個電腦玩家");
+    }
+    
     private void UpdateGameStatusDisplay()
     {
+        // 更新當前玩家顯示
+        if (currentPlayerLabel != null)
+        {
+            string currentPlayerName = GetCurrentPlayerName();
+            currentPlayerLabel.Text = $"當前玩家: {currentPlayerName}";
+            GD.Print($"更新當前玩家顯示: {currentPlayerName}");
+        }
+        
         // 更新當前顏色顯示
         if (currentColorLabel != null && currentTopCard != null)
         {
@@ -795,12 +919,287 @@ public partial class MainGame : Node2D
             GD.Print($"更新當前顏色顯示: {colorText}");
         }
         
-        // 更新剩餘牌數顯示
+        // 更新所有玩家手牌數量顯示
         if (cardsLeftLabel != null)
         {
-            cardsLeftLabel.Text = $"剩餘牌數: {playerHand.Count}";
-            GD.Print($"更新剩餘牌數顯示: {playerHand.Count}");
+            string allPlayersCardsInfo = GetAllPlayersCardsInfo();
+            cardsLeftLabel.Text = allPlayersCardsInfo;
+            GD.Print($"更新所有玩家手牌信息: {allPlayersCardsInfo}");
         }
+    }
+    
+    private string GetCurrentPlayerName()
+    {
+        if (currentPlayerIndex == 0)
+        {
+            return "玩家1 (你)";
+        }
+        else
+        {
+            int computerPlayerIndex = currentPlayerIndex - 1;
+            if (computerPlayerIndex < computerPlayers.Count)
+            {
+                return computerPlayers[computerPlayerIndex].PlayerName;
+            }
+            else
+            {
+                return $"玩家{currentPlayerIndex + 1}";
+            }
+        }
+    }
+    
+    private string GetAllPlayersCardsInfo()
+    {
+        var info = new List<string>();
+        
+        // 人類玩家手牌數量
+        info.Add($"你: {playerHand.Count}張");
+        
+        // 電腦玩家手牌數量
+        for (int i = 0; i < computerPlayers.Count; i++)
+        {
+            var computerPlayer = computerPlayers[i];
+            info.Add($"{computerPlayer.PlayerName}: {computerPlayer.Hand.Count}張");
+        }
+        
+        return string.Join(" | ", info);
+    }
+    
+    private void NextPlayer()
+    {
+        // 輪換到下一個玩家
+        currentPlayerIndex = (currentPlayerIndex + 1) % PlayerCount;
+        GD.Print($"輪換到下一個玩家: {GetCurrentPlayerName()}");
+        GD.Print($"當前玩家索引: {currentPlayerIndex}");
+        
+        // 更新UI顯示
+        UpdateGameStatusDisplay();
+        
+        // 如果是電腦玩家的回合，執行電腦玩家的行動
+        if (currentPlayerIndex > 0)
+        {
+            GD.Print("開始執行電腦玩家回合");
+            GD.Print("禁用人類玩家按鈕");
+            // 禁用人類玩家的按鈕
+            if (drawCardButton != null) 
+            {
+                drawCardButton.Disabled = true;
+                GD.Print("抽牌按鈕已禁用");
+            }
+            if (playCardButton != null) 
+            {
+                playCardButton.Disabled = true;
+                GD.Print("出牌按鈕已禁用");
+            }
+            if (unoButton != null) 
+            {
+                unoButton.Disabled = true;
+                GD.Print("UNO按鈕已禁用");
+            }
+            
+            ExecuteComputerPlayerTurn();
+        }
+        else
+        {
+            GD.Print("輪換到人類玩家回合");
+            GD.Print("啟用人類玩家按鈕");
+            // 啟用人類玩家的按鈕
+            if (drawCardButton != null) 
+            {
+                drawCardButton.Disabled = false;
+                GD.Print("抽牌按鈕已啟用");
+            }
+            if (playCardButton != null) 
+            {
+                playCardButton.Disabled = true; // 出牌按鈕需要選擇牌後才啟用
+                GD.Print("出牌按鈕保持禁用（需要選擇牌）");
+            }
+            if (unoButton != null) 
+            {
+                unoButton.Disabled = false;
+                GD.Print("UNO按鈕已啟用");
+            }
+        }
+    }
+    
+    private void NextPlayerWithoutComputerTurn()
+    {
+        // 輪換到下一個玩家，但不執行電腦玩家回合
+        currentPlayerIndex = (currentPlayerIndex + 1) % PlayerCount;
+        GD.Print($"輪換到下一個玩家: {GetCurrentPlayerName()}");
+        
+        // 更新UI顯示
+        UpdateGameStatusDisplay();
+    }
+    
+    private void ExecuteComputerPlayerTurn()
+    {
+        int computerPlayerIndex = currentPlayerIndex - 1;
+        if (computerPlayerIndex < computerPlayers.Count)
+        {
+            var computerPlayer = computerPlayers[computerPlayerIndex];
+            GD.Print($"電腦玩家 {computerPlayer.PlayerName} 的回合開始");
+            GD.Print($"電腦玩家手牌數量: {computerPlayer.Hand.Count}");
+            GD.Print($"當前頂牌: {currentTopCard?.Color} {currentTopCard?.CardValue}");
+            
+            // 檢查電腦玩家是否有可以打出的牌
+            Card cardToPlay = computerPlayer.ChooseCardToPlay(currentTopCard);
+            
+            if (cardToPlay != null)
+            {
+                GD.Print($"電腦玩家 {computerPlayer.PlayerName} 打出: {cardToPlay.Color} {cardToPlay.CardValue}");
+                // 從電腦玩家手牌中移除這張牌
+                computerPlayer.Hand.Remove(cardToPlay);
+                // 添加到棄牌堆
+                discardPile.Add(cardToPlay);
+                currentTopCard = cardToPlay;
+                
+                // 更新顯示
+                UpdateDiscardPileDisplay();
+                UpdateGameStatusDisplay();
+                
+                // 檢查特殊牌效果
+                HandleSpecialCardEffect(cardToPlay);
+                
+                // 如果不是特殊牌，輪換到下一個玩家
+                if (cardToPlay.Type == CardType.Number)
+                {
+                    GD.Print("電腦玩家出普通牌，輪換到下一個玩家");
+                    NextPlayer();
+                }
+            }
+            else
+            {
+                GD.Print($"電腦玩家 {computerPlayer.PlayerName} 沒有可以打出的牌，抽一張牌");
+                // 電腦玩家抽一張牌
+                if (drawPile.Count > 0)
+                {
+                    var drawnCard = drawPile[0];
+                    drawPile.RemoveAt(0);
+                    computerPlayer.Hand.Add(drawnCard);
+                    GD.Print($"電腦玩家 {computerPlayer.PlayerName} 抽到: {drawnCard.Color} {drawnCard.CardValue}");
+                }
+                
+                // 輪換到下一個玩家
+                NextPlayer();
+            }
+        }
+        else
+        {
+            GD.PrintErr($"電腦玩家索引超出範圍: {computerPlayerIndex}, 電腦玩家數量: {computerPlayers.Count}");
+            // 如果索引超出範圍，輪換到人類玩家
+            currentPlayerIndex = 0;
+            NextPlayer();
+        }
+    }
+    
+    private void HandleSpecialCardEffect(Card card)
+    {
+        switch (card.Type)
+        {
+            case CardType.Skip:
+                GD.Print("跳過下一個玩家的回合");
+                NextPlayer(); // 跳過一個玩家
+                break;
+            case CardType.Reverse:
+                GD.Print("遊戲方向改變");
+                // 這裡可以添加方向改變的邏輯
+                break;
+            case CardType.DrawTwo:
+                GD.Print("下一個玩家抽兩張牌");
+                // 讓下一個玩家抽兩張牌
+                NextPlayerWithoutComputerTurn();
+                DrawTwoCardsForCurrentPlayer();
+                // 抽牌後再輪換到下一個玩家
+                NextPlayer();
+                break;
+            case CardType.WildDrawFour:
+                GD.Print("下一個玩家抽四張牌");
+                // 讓下一個玩家抽四張牌
+                NextPlayerWithoutComputerTurn();
+                DrawFourCardsForCurrentPlayer();
+                // 抽牌後再輪換到下一個玩家
+                NextPlayer();
+                break;
+        }
+    }
+    
+    private void DrawTwoCardsForCurrentPlayer()
+    {
+        if (currentPlayerIndex == 0)
+        {
+            // 人類玩家抽兩張牌
+            for (int i = 0; i < 2; i++)
+            {
+                if (drawPile.Count > 0)
+                {
+                    var card = drawPile[0];
+                    drawPile.RemoveAt(0);
+                    playerHand.Add(card);
+                    GD.Print($"你抽到: {card.Color} {card.CardValue}");
+                }
+            }
+            UpdatePlayerHandDisplay();
+        }
+        else
+        {
+            // 電腦玩家抽兩張牌
+            int computerPlayerIndex = currentPlayerIndex - 1;
+            if (computerPlayerIndex < computerPlayers.Count)
+            {
+                var computerPlayer = computerPlayers[computerPlayerIndex];
+                for (int i = 0; i < 2; i++)
+                {
+                    if (drawPile.Count > 0)
+                    {
+                        var card = drawPile[0];
+                        drawPile.RemoveAt(0);
+                        computerPlayer.Hand.Add(card);
+                        GD.Print($"電腦玩家 {computerPlayer.PlayerName} 抽到: {card.Color} {card.CardValue}");
+                    }
+                }
+            }
+        }
+        UpdateGameStatusDisplay();
+    }
+    
+    private void DrawFourCardsForCurrentPlayer()
+    {
+        if (currentPlayerIndex == 0)
+        {
+            // 人類玩家抽四張牌
+            for (int i = 0; i < 4; i++)
+            {
+                if (drawPile.Count > 0)
+                {
+                    var card = drawPile[0];
+                    drawPile.RemoveAt(0);
+                    playerHand.Add(card);
+                    GD.Print($"你抽到: {card.Color} {card.CardValue}");
+                }
+            }
+            UpdatePlayerHandDisplay();
+        }
+        else
+        {
+            // 電腦玩家抽四張牌
+            int computerPlayerIndex = currentPlayerIndex - 1;
+            if (computerPlayerIndex < computerPlayers.Count)
+            {
+                var computerPlayer = computerPlayers[computerPlayerIndex];
+                for (int i = 0; i < 4; i++)
+                {
+                    if (drawPile.Count > 0)
+                    {
+                        var card = drawPile[0];
+                        drawPile.RemoveAt(0);
+                        computerPlayer.Hand.Add(card);
+                        GD.Print($"電腦玩家 {computerPlayer.PlayerName} 抽到: {card.Color} {card.CardValue}");
+                    }
+                }
+            }
+        }
+        UpdateGameStatusDisplay();
     }
     
     private string GetColorText(CardColor color)
@@ -822,15 +1221,74 @@ public partial class MainGame : Node2D
         // 清空玩家手牌（如果有的話）
         playerHand.Clear();
         
-        // 開始發放7張初始手牌
-        DealInitialCardWithAnimation(0);
+        // 清空電腦玩家手牌
+        foreach (var computerPlayer in computerPlayers)
+        {
+            computerPlayer.Hand.Clear();
+        }
+        
+        // 開始發放初始手牌（人類玩家）
+        DealInitialCardWithAnimation(0, true);
     }
     
-    private void DealInitialCardWithAnimation(int cardIndex)
+    private void DealComputerPlayersCards()
+    {
+        GD.Print("開始為電腦玩家發放初始手牌...");
+        
+        // 為每個電腦玩家發放7張牌
+        for (int playerIndex = 0; playerIndex < computerPlayers.Count; playerIndex++)
+        {
+            var computerPlayer = computerPlayers[playerIndex];
+            GD.Print($"為電腦玩家 {computerPlayer.PlayerName} 發放初始手牌...");
+            
+            // 發放7張牌給這個電腦玩家
+            for (int cardIndex = 0; cardIndex < 7; cardIndex++)
+            {
+                if (drawPile.Count > 0)
+                {
+                    var cardToDraw = drawPile[0];
+                    drawPile.RemoveAt(0);
+                    computerPlayer.Hand.Add(cardToDraw);
+                    GD.Print($"電腦玩家 {computerPlayer.PlayerName} 獲得第 {cardIndex + 1} 張牌: {cardToDraw.Color} {cardToDraw.CardValue}");
+                }
+                else
+                {
+                    GD.PrintErr("抽牌堆已空，無法為電腦玩家發放更多牌");
+                    break;
+                }
+            }
+            
+            GD.Print($"電腦玩家 {computerPlayer.PlayerName} 初始手牌發放完成，手牌: {computerPlayer.Hand.Count} 張");
+        }
+        
+        GD.Print("所有電腦玩家初始手牌發放完成");
+        
+        // 開始遊戲
+        UpdateGameStatusDisplay();
+        GD.Print("遊戲初始化完成，可以開始遊戲");
+        
+        // 如果第一個玩家是電腦玩家，開始電腦玩家回合
+        if (currentPlayerIndex > 0)
+        {
+            GD.Print("第一個玩家是電腦玩家，開始電腦玩家回合");
+            NextPlayer();
+        }
+    }
+
+    private void DealInitialCardWithAnimation(int cardIndex, bool isHumanPlayer = true)
     {
         if (cardIndex >= 7 || drawPile.Count == 0)
         {
-            GD.Print($"初始手牌發放完成，玩家手牌: {playerHand.Count} 張");
+            if (isHumanPlayer)
+            {
+                GD.Print($"人類玩家初始手牌發放完成，手牌: {playerHand.Count} 張");
+                // 開始為電腦玩家發牌
+                DealComputerPlayersCards();
+            }
+            else
+            {
+                GD.Print($"電腦玩家初始手牌發放完成");
+            }
             return;
         }
         

@@ -26,8 +26,33 @@ public partial class MainScreen : Control
 
     private void OnSinglePlayerButtonPressed()
     {
-        GD.Print("開始單人遊戲 - 切換到主遊戲場景");
-        GetTree().ChangeSceneToFile("res://scenes/main_game.tscn");
+        GD.Print("開始單人遊戲");
+        
+        // 讀取設定中的遊玩人數
+        int playerCount = GetPlayerCountFromSettings();
+        GD.Print($"設定中的遊玩人數: {playerCount}人");
+        
+        // 將遊玩人數傳遞給遊戲場景
+        var gameScene = ResourceLoader.Load<PackedScene>("res://scenes/main_game.tscn");
+        if (gameScene != null)
+        {
+            var gameInstance = gameScene.Instantiate<MainGame>();
+            gameInstance.PlayerCount = playerCount;
+            GetTree().Root.AddChild(gameInstance);
+            GetTree().CurrentScene = gameInstance;
+        }
+        else
+        {
+            GD.PrintErr("無法載入遊戲場景");
+            GetTree().ChangeSceneToFile("res://scenes/main_game.tscn");
+        }
+    }
+
+    private int GetPlayerCountFromSettings()
+    {
+        // 從設定檔讀取遊玩人數，預設為4人
+        // 這裡可以擴展為實際的設定檔讀取
+        return 4; // 預設4人
     }
 
     private void OnMultiplayerButtonPressed()

@@ -1,5 +1,6 @@
 {
     "godot.csharp.executablePath": "D:\\Godot\\Godot_v4.4.1-stable_mono_win64\\Godot_v4.4.1-stable_mono_win64\\Godot_v4.4.1-stable_mono_win64.exe",
     "godot.csharp.projectPath": "${workspaceFolder}",
-    "dotnet.defaultSolution": "BeatemUpGame.sln"
+    "dotnet.defaultSolution": "BeatemUpGame.sln",
+    "godotTools.editorPath.godot4": "d:\\Godot\\Godot_v4.4.1-stable_mono_win64\\Godot_v4.4.1-stable_mono_win64\\Godot_v4.4.1-stable_mono_win64.exe"
 } 
