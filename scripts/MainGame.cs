@@ -105,6 +105,9 @@ public partial class MainGame : Node2D
     private Label currentColorLabel;
     private Label cardsLeftLabel;
     
+    // 訊息框相關
+    private VBoxContainer messageContainer;
+    
     // 手牌滾動相關
     private ScrollContainer playerHandScrollContainer;
     private int currentHandScrollIndex = 0;
@@ -159,6 +162,9 @@ public partial class MainGame : Node2D
         currentPlayerLabel = GetNode<Label>("UILayer/UI/TopPanel/GameInfo/CurrentPlayer");
         currentColorLabel = GetNode<Label>("UILayer/UI/TopPanel/GameInfo/CurrentColor");
         cardsLeftLabel = GetNode<Label>("UILayer/UI/TopPanel/GameInfo/CardsLeft");
+        
+        // 獲取訊息框
+        messageContainer = GetNode<VBoxContainer>("UILayer/UI/MessagePanel/MessageScrollContainer/MessageContainer");
     }
     
 
@@ -1039,6 +1045,7 @@ public partial class MainGame : Node2D
         {
             var computerPlayer = computerPlayers[computerPlayerIndex];
             GD.Print($"電腦玩家 {computerPlayer.PlayerName} 的回合開始");
+            AddMessage($"{computerPlayer.PlayerName} 的回合開始");
             GD.Print($"電腦玩家手牌數量: {computerPlayer.Hand.Count}");
             GD.Print($"當前頂牌: {currentTopCard?.Color} {currentTopCard?.CardValue}");
             
@@ -1048,6 +1055,8 @@ public partial class MainGame : Node2D
             if (cardToPlay != null)
             {
                 GD.Print($"電腦玩家 {computerPlayer.PlayerName} 打出: {cardToPlay.Color} {cardToPlay.CardValue}");
+                AddMessage($"{computerPlayer.PlayerName} 打出: {GetColorText(cardToPlay.Color)} {cardToPlay.CardValue}");
+                
                 // 從電腦玩家手牌中移除這張牌
                 computerPlayer.Hand.Remove(cardToPlay);
                 // 添加到棄牌堆
@@ -1065,12 +1074,15 @@ public partial class MainGame : Node2D
                 if (cardToPlay.Type == CardType.Number)
                 {
                     GD.Print("電腦玩家出普通牌，輪換到下一個玩家");
+                    AddMessage($"{computerPlayer.PlayerName} 出普通牌，輪換到下一個玩家");
                     NextPlayer();
                 }
             }
             else
             {
                 GD.Print($"電腦玩家 {computerPlayer.PlayerName} 沒有可以打出的牌，抽一張牌");
+                AddMessage($"{computerPlayer.PlayerName} 沒有可以打出的牌，抽一張牌");
+                
                 // 電腦玩家抽一張牌
                 if (drawPile.Count > 0)
                 {
@@ -1078,6 +1090,7 @@ public partial class MainGame : Node2D
                     drawPile.RemoveAt(0);
                     computerPlayer.Hand.Add(drawnCard);
                     GD.Print($"電腦玩家 {computerPlayer.PlayerName} 抽到: {drawnCard.Color} {drawnCard.CardValue}");
+                    AddMessage($"{computerPlayer.PlayerName} 抽到: {GetColorText(drawnCard.Color)} {drawnCard.CardValue}");
                 }
                 
                 // 輪換到下一個玩家
@@ -1087,6 +1100,7 @@ public partial class MainGame : Node2D
         else
         {
             GD.PrintErr($"電腦玩家索引超出範圍: {computerPlayerIndex}, 電腦玩家數量: {computerPlayers.Count}");
+            AddMessage($"錯誤：電腦玩家索引超出範圍");
             // 如果索引超出範圍，輪換到人類玩家
             currentPlayerIndex = 0;
             NextPlayer();
@@ -1099,14 +1113,17 @@ public partial class MainGame : Node2D
         {
             case CardType.Skip:
                 GD.Print("跳過下一個玩家的回合");
+                AddMessage("跳過下一個玩家的回合");
                 NextPlayer(); // 跳過一個玩家
                 break;
             case CardType.Reverse:
                 GD.Print("遊戲方向改變");
+                AddMessage("遊戲方向改變");
                 // 這裡可以添加方向改變的邏輯
                 break;
             case CardType.DrawTwo:
                 GD.Print("下一個玩家抽兩張牌");
+                AddMessage("下一個玩家抽兩張牌");
                 // 讓下一個玩家抽兩張牌
                 NextPlayerWithoutComputerTurn();
                 DrawTwoCardsForCurrentPlayer();
@@ -1115,6 +1132,7 @@ public partial class MainGame : Node2D
                 break;
             case CardType.WildDrawFour:
                 GD.Print("下一個玩家抽四張牌");
+                AddMessage("下一個玩家抽四張牌");
                 // 讓下一個玩家抽四張牌
                 NextPlayerWithoutComputerTurn();
                 DrawFourCardsForCurrentPlayer();
@@ -1129,6 +1147,7 @@ public partial class MainGame : Node2D
         if (currentPlayerIndex == 0)
         {
             // 人類玩家抽兩張牌
+            AddMessage("你抽了兩張牌");
             for (int i = 0; i < 2; i++)
             {
                 if (drawPile.Count > 0)
@@ -1148,6 +1167,7 @@ public partial class MainGame : Node2D
             if (computerPlayerIndex < computerPlayers.Count)
             {
                 var computerPlayer = computerPlayers[computerPlayerIndex];
+                AddMessage($"{computerPlayer.PlayerName} 抽了兩張牌");
                 for (int i = 0; i < 2; i++)
                 {
                     if (drawPile.Count > 0)
@@ -1168,6 +1188,7 @@ public partial class MainGame : Node2D
         if (currentPlayerIndex == 0)
         {
             // 人類玩家抽四張牌
+            AddMessage("你抽了四張牌");
             for (int i = 0; i < 4; i++)
             {
                 if (drawPile.Count > 0)
@@ -1187,6 +1208,7 @@ public partial class MainGame : Node2D
             if (computerPlayerIndex < computerPlayers.Count)
             {
                 var computerPlayer = computerPlayers[computerPlayerIndex];
+                AddMessage($"{computerPlayer.PlayerName} 抽了四張牌");
                 for (int i = 0; i < 4; i++)
                 {
                     if (drawPile.Count > 0)
@@ -1212,6 +1234,33 @@ public partial class MainGame : Node2D
             CardColor.Yellow => "黃色",
             _ => "未知"
         };
+    }
+    
+    // 添加訊息到訊息框
+    private void AddMessage(string message)
+    {
+        if (messageContainer != null)
+        {
+            var messageLabel = new Label();
+            messageLabel.Text = $"[{DateTime.Now:HH:mm:ss}] {message}";
+            messageLabel.AddThemeColorOverride("font_color", new Color(1, 1, 1, 1));
+            messageLabel.AddThemeConstantOverride("font_size", 14);
+            messageLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+            
+            messageContainer.AddChild(messageLabel);
+            
+            // 限制訊息數量，最多保留20條
+            if (messageContainer.GetChildCount() > 20)
+            {
+                var firstChild = messageContainer.GetChild(0);
+                if (firstChild != null)
+                {
+                    firstChild.QueueFree();
+                }
+            }
+            
+            GD.Print($"添加訊息: {message}");
+        }
     }
     
     private void StartInitialDealAnimation()

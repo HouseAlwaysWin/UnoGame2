@@ -3,6 +3,13 @@
 [ext_resource type="Texture2D" uid="uid://gaix45ad7hgs" path="res://assets/background.png" id="1_background"]
 [ext_resource type="Script" uid="uid://bttfxt2arqx1k" path="res://scripts/MainGame.cs" id="1_main"]
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_Panel"]
+bg_color = Color(0.3, 0.2, 0.1, 0.9)
+corner_radius_top_left = 15
+corner_radius_top_right = 15
+corner_radius_bottom_right = 15
+corner_radius_bottom_left = 15
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_GreenButtonHover"]
 bg_color = Color(0.3, 1, 0.3, 1)
 corner_radius_top_left = 10
@@ -65,13 +72,6 @@ corner_radius_top_left = 10
 corner_radius_top_right = 10
 corner_radius_bottom_right = 10
 corner_radius_bottom_left = 10
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_Panel"]
-bg_color = Color(0.3, 0.2, 0.1, 0.9)
-corner_radius_top_left = 15
-corner_radius_top_right = 15
-corner_radius_bottom_right = 15
-corner_radius_bottom_left = 15
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_RedHover"]
 bg_color = Color(1, 0.3, 0.3, 1)
@@ -262,6 +262,45 @@ offset_right = 80.0
 offset_bottom = 170.0
 grow_horizontal = 2
 grow_vertical = 2
+
+[node name="MessagePanel" type="Panel" parent="UILayer/UI"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -300.0
+offset_top = 80.0
+offset_right = -20.0
+offset_bottom = 400.0
+grow_horizontal = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_Panel")
+
+[node name="MessageTitle" type="Label" parent="UILayer/UI/MessagePanel"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 40.0
+grow_horizontal = 2
+theme_override_font_sizes/font_size = 16
+text = "電腦動作訊息"
+horizontal_alignment = 1
+
+[node name="MessageScrollContainer" type="ScrollContainer" parent="UILayer/UI/MessagePanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 40.0
+offset_right = -10.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MessageContainer" type="VBoxContainer" parent="UILayer/UI/MessagePanel/MessageScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 
 [node name="PlayerHand" type="HBoxContainer" parent="UILayer/UI"]
 layout_mode = 1
