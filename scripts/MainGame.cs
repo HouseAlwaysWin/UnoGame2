@@ -22,6 +22,11 @@ public partial class MainGame : Node2D
     private TextureRect discardPileUI;
     private HBoxContainer playerHandUI; // 改回 HBoxContainer 類型
     
+    // 遊戲狀態標籤
+    private Label currentPlayerLabel;
+    private Label currentColorLabel;
+    private Label cardsLeftLabel;
+    
     // 手牌滾動相關
     private ScrollContainer playerHandScrollContainer;
     private int currentHandScrollIndex = 0;
@@ -71,6 +76,11 @@ public partial class MainGame : Node2D
         
         // 獲取手牌滾動按鈕和容器
         playerHandScrollContainer = GetNode<ScrollContainer>("UILayer/UI/PlayerHand/ScrollContainer");
+        
+        // 獲取遊戲狀態標籤
+        currentPlayerLabel = GetNode<Label>("UILayer/UI/TopPanel/GameInfo/CurrentPlayer");
+        currentColorLabel = GetNode<Label>("UILayer/UI/TopPanel/GameInfo/CurrentColor");
+        cardsLeftLabel = GetNode<Label>("UILayer/UI/TopPanel/GameInfo/CardsLeft");
     }
     
 
@@ -315,6 +325,9 @@ public partial class MainGame : Node2D
         // 重置狀態
         isAnimating = false;
         drawCardButton.Disabled = false;
+        
+        // 更新遊戲狀態顯示
+        UpdateGameStatusDisplay();
         
         GD.Print($"抽牌完成，玩家手牌: {playerHand.Count} 張，抽牌堆剩餘: {drawPile.Count} 張");
     }
@@ -620,6 +633,9 @@ public partial class MainGame : Node2D
         }
         
         GD.Print($"出牌完成，剩餘手牌: {playerHand.Count} 張");
+        
+        // 更新遊戲狀態顯示
+        UpdateGameStatusDisplay();
     }
     
     private void UpdateDiscardPileDisplay()
@@ -670,6 +686,14 @@ public partial class MainGame : Node2D
             if (drawCardButton != null) drawCardButton.Disabled = true;
             if (playCardButton != null) playCardButton.Disabled = true;
             if (unoButton != null) unoButton.Disabled = true;
+            
+            // 添加提示信息
+            var colorTitle = GetNode<Label>("UILayer/UI/ColorSelectionPanel/ColorTitle");
+            if (colorTitle != null)
+            {
+                colorTitle.Text = "請選擇下一個顏色:";
+                colorTitle.Modulate = new Color(1, 1, 1, 1); // 確保可見
+            }
         }
     }
     
@@ -677,36 +701,51 @@ public partial class MainGame : Node2D
     {
         GD.Print($"選擇顏色: {color}");
         
-        // 隱藏顏色選擇面板
-        if (colorSelectionPanel != null)
+        // 顯示選擇確認
+        var colorTitle = GetNode<Label>("UILayer/UI/ColorSelectionPanel/ColorTitle");
+        if (colorTitle != null)
         {
-            colorSelectionPanel.Visible = false;
+            colorTitle.Text = $"已選擇: {color}";
+            colorTitle.Modulate = new Color(0, 1, 0, 1); // 綠色表示確認
         }
         
-        // 重新啟用其他按鈕
-        if (drawCardButton != null) drawCardButton.Disabled = false;
-        if (playCardButton != null) playCardButton.Disabled = true; // 出牌按鈕保持禁用，直到選擇新牌
-        if (unoButton != null) unoButton.Disabled = false;
-        
-        // 更新當前頂牌的顏色（萬能牌會改變顏色）
-        if (currentTopCard != null && (currentTopCard.Type == CardType.Wild || currentTopCard.Type == CardType.WildDrawFour))
-        {
-            // 創建一個新的頂牌實例，使用選擇的顏色
-            var newTopCard = new Card();
-            newTopCard.SetCard(GetCardColorFromString(color.ToLower()), currentTopCard.CardValue, currentTopCard.Type);
-            
-            // 更新棄牌堆中的頂牌
-            if (discardPile.Count > 0)
+        // 延遲一下再隱藏面板，讓玩家看到選擇確認
+        var delayTween = CreateTween();
+        delayTween.TweenCallback(Callable.From(() => {
+            // 隱藏顏色選擇面板
+            if (colorSelectionPanel != null)
             {
-                discardPile[discardPile.Count - 1] = newTopCard;
+                colorSelectionPanel.Visible = false;
             }
-            currentTopCard = newTopCard;
             
-            // 更新顯示
-            UpdateDiscardPileDisplay();
+            // 重新啟用其他按鈕
+            if (drawCardButton != null) drawCardButton.Disabled = false;
+            if (playCardButton != null) playCardButton.Disabled = true; // 出牌按鈕保持禁用，直到選擇新牌
+            if (unoButton != null) unoButton.Disabled = false;
             
-            GD.Print($"萬能牌顏色已更改為: {color}");
-        }
+            // 更新當前頂牌的顏色（萬能牌會改變顏色）
+            if (currentTopCard != null && (currentTopCard.Type == CardType.Wild || currentTopCard.Type == CardType.WildDrawFour))
+            {
+                // 創建一個新的頂牌實例，使用選擇的顏色
+                var newTopCard = new Card();
+                newTopCard.SetCard(GetCardColorFromString(color), currentTopCard.CardValue, currentTopCard.Type);
+                
+                // 更新棄牌堆中的頂牌
+                if (discardPile.Count > 0)
+                {
+                    discardPile[discardPile.Count - 1] = newTopCard;
+                }
+                currentTopCard = newTopCard;
+                
+                // 更新顯示
+                UpdateDiscardPileDisplay();
+                
+                GD.Print($"萬能牌顏色已更改為: {color}");
+                
+                // 更新遊戲狀態顯示
+                UpdateGameStatusDisplay();
+            }
+                })).SetDelay(1.0f); // 延遲1秒
     }
 
     private void InitializeGame()
@@ -741,6 +780,39 @@ public partial class MainGame : Node2D
         }
         
         GD.Print($"初始化完成 - 抽牌堆: {drawPile.Count}張, 頂牌: 1張");
+        
+        // 更新遊戲狀態顯示
+        UpdateGameStatusDisplay();
+    }
+    
+    private void UpdateGameStatusDisplay()
+    {
+        // 更新當前顏色顯示
+        if (currentColorLabel != null && currentTopCard != null)
+        {
+            string colorText = GetColorText(currentTopCard.Color);
+            currentColorLabel.Text = $"當前顏色: {colorText}";
+            GD.Print($"更新當前顏色顯示: {colorText}");
+        }
+        
+        // 更新剩餘牌數顯示
+        if (cardsLeftLabel != null)
+        {
+            cardsLeftLabel.Text = $"剩餘牌數: {playerHand.Count}";
+            GD.Print($"更新剩餘牌數顯示: {playerHand.Count}");
+        }
+    }
+    
+    private string GetColorText(CardColor color)
+    {
+        return color switch
+        {
+            CardColor.Red => "紅色",
+            CardColor.Blue => "藍色",
+            CardColor.Green => "綠色",
+            CardColor.Yellow => "黃色",
+            _ => "未知"
+        };
     }
     
     private void StartInitialDealAnimation()
@@ -985,12 +1057,12 @@ public partial class MainGame : Node2D
     
     private CardColor GetCardColorFromString(string colorString)
     {
-        return colorString switch
+        return colorString.ToLower() switch
         {
-            "red" => CardColor.Red,
-            "blue" => CardColor.Blue,
-            "green" => CardColor.Green,
-            "yellow" => CardColor.Yellow,
+            "red" or "紅色" => CardColor.Red,
+            "blue" or "藍色" => CardColor.Blue,
+            "green" or "綠色" => CardColor.Green,
+            "yellow" or "黃色" => CardColor.Yellow,
             _ => CardColor.Red
         };
     }
