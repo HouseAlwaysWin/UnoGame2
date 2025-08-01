@@ -33,6 +33,9 @@ public partial class Card : TextureRect
     [Export]
     public CardType Type { get; set; } = CardType.Number;
     
+    // 添加索引屬性來區分相同的牌
+    public int HandIndex { get; set; } = -1;
+    
     public override bool Equals(object obj)
     {
         if (obj is Card other)
