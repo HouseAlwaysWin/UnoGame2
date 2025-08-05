@@ -184,7 +184,7 @@ public partial class MainGame : Node2D
         if (gameStateManager.SelectedCard != null)
         {
                     // 檢查是否可以打出這張牌
-        if (gameStateManager.CurrentTopCard != null && gameStateManager.SelectedCard.CanPlayOn(gameStateManager.CurrentTopCard))
+        if (gameStateManager.CanPlayCard(gameStateManager.SelectedCard))
             {
                 GD.Print($"打出卡牌: {gameStateManager.SelectedCard.Color} {gameStateManager.SelectedCard.CardValue}");
                 PlayCard(gameStateManager.SelectedCard);
@@ -219,7 +219,21 @@ public partial class MainGame : Node2D
             UpdatePlayerHandDisplay();
             UpdateDrawPileDisplay();
             UpdateGameStatusDisplay();
-            NextPlayer();
+            
+            // 抽牌後重新啟用按鈕，保持當前玩家回合
+            if (drawCardButton != null)
+            {
+                drawCardButton.Disabled = false;
+                GD.Print("抽牌完成，重新啟用抽牌按鈕");
+            }
+            if (playCardButton != null)
+            {
+                playCardButton.Disabled = true; // 需要選擇牌才能出牌
+            }
+            if (unoButton != null)
+            {
+                unoButton.Disabled = false;
+            }
             return;
         }
 
@@ -397,8 +411,20 @@ public partial class MainGame : Node2D
 
         GD.Print($"抽牌完成，玩家手牌: {gameStateManager.PlayerHand.Count} 張，抽牌堆剩餘: {gameStateManager.DrawPile.Count} 張");
 
-        // 抽牌後輪換到下一個玩家（標準 UNO 規則）
-        NextPlayer();
+        // 抽牌後重新啟用按鈕，保持當前玩家回合
+        if (drawCardButton != null)
+        {
+            drawCardButton.Disabled = false;
+            GD.Print("抽牌完成，重新啟用抽牌按鈕");
+        }
+        if (playCardButton != null)
+        {
+            playCardButton.Disabled = true; // 需要選擇牌才能出牌
+        }
+        if (unoButton != null)
+        {
+            unoButton.Disabled = false;
+        }
     }
 
     private void UpdatePlayerHandDisplay()
@@ -516,7 +542,7 @@ public partial class MainGame : Node2D
         GD.Print($"設置選中的牌: {gameStateManager.SelectedCard.Color} {gameStateManager.SelectedCard.CardValue}, 索引: {gameStateManager.SelectedCardIndex}");
 
         // 檢查是否可以打出這張牌
-        if (gameStateManager.CurrentTopCard != null && clickedCard.CanPlayOn(gameStateManager.CurrentTopCard))
+        if (gameStateManager.CanPlayCard(clickedCard))
         {
             GD.Print("可以打出這張牌！");
             // 啟用出牌按鈕
@@ -713,6 +739,14 @@ public partial class MainGame : Node2D
         }
 
         GD.Print($"出牌完成，剩餘手牌: {gameStateManager.PlayerHand.Count} 張");
+
+        // 檢查遊戲是否結束
+        if (gameStateManager.IsGameOver())
+        {
+            GD.Print("遊戲結束！");
+            AddMessage("遊戲結束！");
+            // 這裡可以添加遊戲結束的處理邏輯
+        }
 
         // 更新遊戲狀態顯示
         UpdateGameStatusDisplay();
@@ -980,47 +1014,18 @@ public partial class MainGame : Node2D
 
     private string GetCurrentPlayerName()
     {
-        if (gameStateManager.CurrentPlayerIndex == 0)
-        {
-            return "玩家1 (你)";
-        }
-        else
-        {
-            int computerPlayerIndex = gameStateManager.CurrentPlayerIndex - 1;
-            if (computerPlayerIndex < gameStateManager.ComputerPlayers.Count)
-            {
-                return gameStateManager.ComputerPlayers[computerPlayerIndex].PlayerName;
-            }
-            else
-            {
-                return $"玩家{gameStateManager.CurrentPlayerIndex + 1}";
-            }
-        }
+        return gameStateManager.GetCurrentPlayerName();
     }
 
     private string GetAllPlayersCardsInfo()
     {
-        var info = new List<string>();
-
-        // 人類玩家手牌數量
-        info.Add($"你: {gameStateManager.PlayerHand.Count}張");
-
-        // 電腦玩家手牌數量
-        for (int i = 0; i < gameStateManager.ComputerPlayers.Count; i++)
-        {
-            var computerPlayer = gameStateManager.ComputerPlayers[i];
-            info.Add($"{computerPlayer.PlayerName}: {computerPlayer.Hand.Count}張");
-        }
-
-        return string.Join(" | ", info);
+        return gameStateManager.GetAllPlayersCardsInfo();
     }
 
     private void NextPlayer()
     {
-        // 輪換到下一個玩家
-        gameStateManager.CurrentPlayerIndex = (gameStateManager.CurrentPlayerIndex + 1) % gameStateManager.PlayerCount;
-        GD.Print($"輪換到下一個玩家: {GetCurrentPlayerName()}");
-        GD.Print($"當前玩家索引: {gameStateManager.CurrentPlayerIndex}");
+        // 使用GameStateManager的NextPlayer方法
+        gameStateManager.NextPlayer();
 
         // 更新UI顯示
         UpdateGameStatusDisplay();
@@ -1074,9 +1079,8 @@ public partial class MainGame : Node2D
 
     private void NextPlayerWithoutComputerTurn()
     {
-        // 輪換到下一個玩家，但不執行電腦玩家回合
-        gameStateManager.CurrentPlayerIndex = (gameStateManager.CurrentPlayerIndex + 1) % gameStateManager.PlayerCount;
-        GD.Print($"輪換到下一個玩家: {GetCurrentPlayerName()}");
+        // 使用GameStateManager的NextPlayerWithoutComputerTurn方法
+        gameStateManager.NextPlayerWithoutComputerTurn();
 
         // 更新UI顯示
         UpdateGameStatusDisplay();
@@ -1226,180 +1230,88 @@ public partial class MainGame : Node2D
 
     private void HandleSpecialCardEffect(Card card)
     {
+        // 使用GameStateManager的HandleSpecialCardEffect方法
+        gameStateManager.HandleSpecialCardEffect(card);
+        
+        // 添加訊息到UI
         switch (card.Type)
         {
             case CardType.Skip:
-                GD.Print("跳過下一個玩家的回合");
                 AddMessage("跳過下一個玩家的回合");
-                NextPlayer(); // 跳過一個玩家
                 break;
             case CardType.Reverse:
-                GD.Print("遊戲方向改變");
                 AddMessage("遊戲方向改變");
-                // 反轉遊戲方向
-                gameStateManager.IsClockwiseDirection = !gameStateManager.IsClockwiseDirection;
-                // 反轉牌需要輪換到下一個玩家
-                NextPlayer();
                 break;
             case CardType.DrawTwo:
-                GD.Print("下一個玩家抽兩張牌");
                 AddMessage("下一個玩家抽兩張牌");
-                // 設置抽兩張牌狀態
-                gameStateManager.IsDrawTwoActive = true;
-                // 讓下一個玩家抽兩張牌
-                NextPlayerWithoutComputerTurn();
-                DrawTwoCardsForCurrentPlayer();
-                // 重置抽兩張牌狀態
-                gameStateManager.IsDrawTwoActive = false;
-                // 抽牌後再輪換到下一個玩家
-                NextPlayer();
                 break;
             case CardType.Wild:
-                GD.Print("萬能牌，輪換到下一個玩家");
                 AddMessage("萬能牌，輪換到下一個玩家");
-                NextPlayer();
                 break;
             case CardType.WildDrawFour:
-                GD.Print("下一個玩家抽四張牌");
                 AddMessage("下一個玩家抽四張牌");
-                // 設置抽四張牌狀態
-                gameStateManager.IsDrawFourActive = true;
-                // 讓下一個玩家抽四張牌
-                NextPlayerWithoutComputerTurn();
-                DrawFourCardsForCurrentPlayer();
-                // 重置抽四張牌狀態
-                gameStateManager.IsDrawFourActive = false;
-                // 抽牌後再輪換到下一個玩家
-                NextPlayer();
                 break;
         }
     }
 
     private void DrawTwoCardsForCurrentPlayer()
     {
+        // 使用GameStateManager的DrawTwoCardsForCurrentPlayer方法
+        gameStateManager.DrawTwoCardsForCurrentPlayer();
+        
+        // 添加訊息到UI
         if (gameStateManager.CurrentPlayerIndex == 0)
         {
-            // 人類玩家抽兩張牌
             AddMessage("你抽了兩張牌");
-            for (int i = 0; i < 2; i++)
-            {
-                if (gameStateManager.DrawPile.Count > 0)
-                {
-                    var card = gameStateManager.DrawPile[0];
-                    gameStateManager.DrawPile.RemoveAt(0);
-                    gameStateManager.PlayerHand.Add(card);
-                    
-                    // 更新統計數據
-                    gameStateManager.TotalCardsDrawn++;
-                    
-                    GD.Print($"你抽到: {card.Color} {card.CardValue}");
-                }
-            }
-            UpdatePlayerHandDisplay();
         }
         else
         {
-            // 電腦玩家抽兩張牌
             int computerPlayerIndex = gameStateManager.CurrentPlayerIndex - 1;
             if (computerPlayerIndex < gameStateManager.ComputerPlayers.Count)
             {
                 var computerPlayer = gameStateManager.ComputerPlayers[computerPlayerIndex];
                 AddMessage($"{computerPlayer.PlayerName} 抽了兩張牌");
-                for (int i = 0; i < 2; i++)
-                {
-                    if (gameStateManager.DrawPile.Count > 0)
-                    {
-                        var card = gameStateManager.DrawPile[0];
-                        gameStateManager.DrawPile.RemoveAt(0);
-                        computerPlayer.Hand.Add(card);
-                        
-                        // 更新統計數據
-                        gameStateManager.TotalCardsDrawn++;
-                        
-                        GD.Print($"電腦玩家 {computerPlayer.PlayerName} 抽到: {card.Color} {card.CardValue}");
-                    }
-                }
             }
         }
-        UpdatePlayerCardCounts();
+        
+        // 更新UI顯示
+        UpdatePlayerHandDisplay();
         UpdateGameStatusDisplay();
     }
 
     private void DrawFourCardsForCurrentPlayer()
     {
+        // 使用GameStateManager的DrawFourCardsForCurrentPlayer方法
+        gameStateManager.DrawFourCardsForCurrentPlayer();
+        
+        // 添加訊息到UI
         if (gameStateManager.CurrentPlayerIndex == 0)
         {
-            // 人類玩家抽四張牌
             AddMessage("你抽了四張牌");
-            for (int i = 0; i < 4; i++)
-            {
-                if (gameStateManager.DrawPile.Count > 0)
-                {
-                    var card = gameStateManager.DrawPile[0];
-                    gameStateManager.DrawPile.RemoveAt(0);
-                    gameStateManager.PlayerHand.Add(card);
-                    
-                    // 更新統計數據
-                    gameStateManager.TotalCardsDrawn++;
-                    
-                    GD.Print($"你抽到: {card.Color} {card.CardValue}");
-                }
-            }
-            UpdatePlayerHandDisplay();
         }
         else
         {
-            // 電腦玩家抽四張牌
             int computerPlayerIndex = gameStateManager.CurrentPlayerIndex - 1;
             if (computerPlayerIndex < gameStateManager.ComputerPlayers.Count)
             {
                 var computerPlayer = gameStateManager.ComputerPlayers[computerPlayerIndex];
                 AddMessage($"{computerPlayer.PlayerName} 抽了四張牌");
-                for (int i = 0; i < 4; i++)
-                {
-                    if (gameStateManager.DrawPile.Count > 0)
-                    {
-                        var card = gameStateManager.DrawPile[0];
-                        gameStateManager.DrawPile.RemoveAt(0);
-                        computerPlayer.Hand.Add(card);
-                        
-                        // 更新統計數據
-                        gameStateManager.TotalCardsDrawn++;
-                        
-                        GD.Print($"電腦玩家 {computerPlayer.PlayerName} 抽到: {card.Color} {card.CardValue}");
-                    }
-                }
             }
         }
-        UpdatePlayerCardCounts();
+        
+        // 更新UI顯示
+        UpdatePlayerHandDisplay();
         UpdateGameStatusDisplay();
     }
 
     private void UpdatePlayerCardCounts()
     {
-        // 更新所有玩家的手牌數量統計
-        gameStateManager.PlayerCardCounts.Clear();
-        
-        // 人類玩家手牌數量
-        gameStateManager.PlayerCardCounts[0] = gameStateManager.PlayerHand.Count;
-        
-        // 電腦玩家手牌數量
-        for (int i = 0; i < gameStateManager.ComputerPlayers.Count; i++)
-        {
-            gameStateManager.PlayerCardCounts[i + 1] = gameStateManager.ComputerPlayers[i].Hand.Count;
-        }
+        gameStateManager.UpdatePlayerCardCounts();
     }
 
     private string GetColorText(CardColor color)
     {
-        return color switch
-        {
-            CardColor.Red => "紅色",
-            CardColor.Blue => "藍色",
-            CardColor.Green => "綠色",
-            CardColor.Yellow => "黃色",
-            _ => "未知"
-        };
+        return gameStateManager.GetColorText(color);
     }
 
     // 添加訊息到訊息框
@@ -1699,14 +1611,7 @@ public partial class MainGame : Node2D
 
     private CardColor GetCardColorFromString(string colorString)
     {
-        return colorString.ToLower() switch
-        {
-            "red" or "紅色" => CardColor.Red,
-            "blue" or "藍色" => CardColor.Blue,
-            "green" or "綠色" => CardColor.Green,
-            "yellow" or "黃色" => CardColor.Yellow,
-            _ => CardColor.Red
-        };
+        return gameStateManager.GetCardColorFromString(colorString);
     }
 
     private void ShuffleDeck()
