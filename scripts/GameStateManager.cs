@@ -12,6 +12,28 @@ public enum GamePhase
 
 public partial class GameStateManager : Node
 {
+    // 遊戲事件信號
+    [Signal]
+    public delegate void GameStateChangedEventHandler();
+
+    [Signal]
+    public delegate void PlayerTurnChangedEventHandler(int playerIndex);
+
+    [Signal]
+    public delegate void CardPlayedEventHandler(Card card, int playerIndex);
+
+    [Signal]
+    public delegate void CardDrawnEventHandler(Card card, int playerIndex);
+
+    [Signal]
+    public delegate void GamePhaseChangedEventHandler(int newPhase);
+
+    [Signal]
+    public delegate void SpecialCardEffectEventHandler(Card card, int effectType);
+
+    [Signal]
+    public delegate void GameOverEventHandler(int winnerPlayerIndex);
+
 // 遊戲狀態
     public List<Card> DrawPile = new List<Card>(); // 抽牌堆
     public List<Card> DiscardPile = new List<Card>(); // 棄牌堆
@@ -59,6 +81,51 @@ public partial class GameStateManager : Node
     public bool EnableAnimations { get; set; } = true;
     public float AnimationSpeed { get; set; } = 1.0f;
 
+    // 事件觸發方法
+    private void EmitGameStateChanged()
+    {
+        EmitSignal(nameof(GameStateChanged));
+    }
+
+    private void EmitPlayerTurnChanged(int playerIndex)
+    {
+        EmitSignal(nameof(PlayerTurnChanged), playerIndex);
+    }
+
+    private void EmitCardPlayed(Card card, int playerIndex)
+    {
+        // 創建Card的副本以避免對象釋放問題
+        var cardInfo = new Card();
+        cardInfo.SetCard(card.Color, card.CardValue, card.Type);
+        EmitSignal(nameof(CardPlayed), cardInfo, playerIndex);
+    }
+
+    private void EmitCardDrawn(Card card, int playerIndex)
+    {
+        // 創建Card的副本以避免對象釋放問題
+        var cardInfo = new Card();
+        cardInfo.SetCard(card.Color, card.CardValue, card.Type);
+        EmitSignal(nameof(CardDrawn), cardInfo, playerIndex);
+    }
+
+    private void EmitGamePhaseChanged(GamePhase newPhase)
+    {
+        EmitSignal(nameof(GamePhaseChanged), (int)newPhase);
+    }
+
+    private void EmitSpecialCardEffect(Card card, CardType effectType)
+    {
+        // 創建Card的副本以避免對象釋放問題
+        var cardInfo = new Card();
+        cardInfo.SetCard(card.Color, card.CardValue, card.Type);
+        EmitSignal(nameof(SpecialCardEffect), cardInfo, (int)effectType);
+    }
+
+    private void EmitGameOver(int winnerPlayerIndex)
+    {
+        EmitSignal(nameof(GameOver), winnerPlayerIndex);
+    }
+
     // 玩家管理方法
     public void NextPlayer()
     {
@@ -66,6 +133,10 @@ public partial class GameStateManager : Node
         CurrentPlayerIndex = (CurrentPlayerIndex + 1) % PlayerCount;
         GD.Print($"輪換到下一個玩家: {GetCurrentPlayerName()}");
         GD.Print($"當前玩家索引: {CurrentPlayerIndex}");
+        
+        // 觸發玩家回合改變事件
+        EmitPlayerTurnChanged(CurrentPlayerIndex);
+        EmitGameStateChanged();
     }
 
     public void NextPlayerWithoutComputerTurn()
@@ -73,6 +144,10 @@ public partial class GameStateManager : Node
         // 輪換到下一個玩家，但不執行電腦玩家回合
         CurrentPlayerIndex = (CurrentPlayerIndex + 1) % PlayerCount;
         GD.Print($"輪換到下一個玩家: {GetCurrentPlayerName()}");
+        
+        // 觸發玩家回合改變事件
+        EmitPlayerTurnChanged(CurrentPlayerIndex);
+        EmitGameStateChanged();
     }
 
     public string GetCurrentPlayerName()
@@ -119,12 +194,14 @@ public partial class GameStateManager : Node
         {
             case CardType.Skip:
                 GD.Print("跳過下一個玩家的回合");
+                EmitSpecialCardEffect(card, CardType.Skip);
                 NextPlayer(); // 跳過一個玩家
                 break;
             case CardType.Reverse:
                 GD.Print("遊戲方向改變");
                 // 反轉遊戲方向
                 IsClockwiseDirection = !IsClockwiseDirection;
+                EmitSpecialCardEffect(card, CardType.Reverse);
                 // 反轉牌需要輪換到下一個玩家
                 NextPlayer();
                 break;
@@ -132,6 +209,7 @@ public partial class GameStateManager : Node
                 GD.Print("下一個玩家抽兩張牌");
                 // 設置抽兩張牌狀態
                 IsDrawTwoActive = true;
+                EmitSpecialCardEffect(card, CardType.DrawTwo);
                 // 讓下一個玩家抽兩張牌
                 NextPlayerWithoutComputerTurn();
                 DrawTwoCardsForCurrentPlayer();
@@ -142,12 +220,14 @@ public partial class GameStateManager : Node
                 break;
             case CardType.Wild:
                 GD.Print("萬能牌，輪換到下一個玩家");
+                EmitSpecialCardEffect(card, CardType.Wild);
                 NextPlayer();
                 break;
             case CardType.WildDrawFour:
                 GD.Print("下一個玩家抽四張牌");
                 // 設置抽四張牌狀態
                 IsDrawFourActive = true;
+                EmitSpecialCardEffect(card, CardType.WildDrawFour);
                 // 讓下一個玩家抽四張牌
                 NextPlayerWithoutComputerTurn();
                 DrawFourCardsForCurrentPlayer();
@@ -175,6 +255,9 @@ public partial class GameStateManager : Node
                     // 更新統計數據
                     TotalCardsDrawn++;
                     
+                    // 觸發抽牌事件
+                    EmitCardDrawn(card, CurrentPlayerIndex);
+                    
                     GD.Print($"你抽到: {card.Color} {card.CardValue}");
                 }
             }
@@ -197,12 +280,16 @@ public partial class GameStateManager : Node
                         // 更新統計數據
                         TotalCardsDrawn++;
                         
+                        // 觸發抽牌事件
+                        EmitCardDrawn(card, CurrentPlayerIndex);
+                        
                         GD.Print($"電腦玩家 {computerPlayer.PlayerName} 抽到: {card.Color} {card.CardValue}");
                     }
                 }
             }
         }
         UpdatePlayerCardCounts();
+        EmitGameStateChanged();
     }
 
     public void DrawFourCardsForCurrentPlayer()
@@ -220,6 +307,9 @@ public partial class GameStateManager : Node
                     
                     // 更新統計數據
                     TotalCardsDrawn++;
+                    
+                    // 觸發抽牌事件
+                    EmitCardDrawn(card, CurrentPlayerIndex);
                     
                     GD.Print($"你抽到: {card.Color} {card.CardValue}");
                 }
@@ -243,12 +333,16 @@ public partial class GameStateManager : Node
                         // 更新統計數據
                         TotalCardsDrawn++;
                         
+                        // 觸發抽牌事件
+                        EmitCardDrawn(card, CurrentPlayerIndex);
+                        
                         GD.Print($"電腦玩家 {computerPlayer.PlayerName} 抽到: {card.Color} {card.CardValue}");
                     }
                 }
             }
         }
         UpdatePlayerCardCounts();
+        EmitGameStateChanged();
     }
 
     // 狀態檢查方法
@@ -261,11 +355,21 @@ public partial class GameStateManager : Node
     public bool IsGameOver()
     {
         // 檢查是否有玩家手牌為0
-        if (PlayerHand.Count == 0) return true;
+        if (PlayerHand.Count == 0) 
+        {
+            EmitGameOver(0); // 人類玩家獲勝
+            return true;
+        }
         
         foreach (var computerPlayer in ComputerPlayers)
         {
-            if (computerPlayer.Hand.Count == 0) return true;
+            if (computerPlayer.Hand.Count == 0) 
+            {
+                // 找到獲勝的電腦玩家索引
+                int winnerIndex = ComputerPlayers.IndexOf(computerPlayer) + 1;
+                EmitGameOver(winnerIndex);
+                return true;
+            }
         }
         
         return false;
@@ -314,5 +418,76 @@ public partial class GameStateManager : Node
         {
             PlayerCardCounts[i + 1] = ComputerPlayers[i].Hand.Count;
         }
+    }
+
+    // 新增方法：設置遊戲階段
+    public void SetGamePhase(GamePhase newPhase)
+    {
+        CurrentGamePhase = newPhase;
+        EmitGamePhaseChanged(newPhase);
+        EmitGameStateChanged();
+    }
+
+    // 新增方法：打出卡牌
+    public void PlayCard(Card card, int playerIndex)
+    {
+        // 從玩家手牌中移除這張牌
+        if (playerIndex == 0)
+        {
+            PlayerHand.Remove(card);
+        }
+        else
+        {
+            int computerPlayerIndex = playerIndex - 1;
+            if (computerPlayerIndex < ComputerPlayers.Count)
+            {
+                ComputerPlayers[computerPlayerIndex].Hand.Remove(card);
+            }
+        }
+
+        // 將牌添加到棄牌堆
+        DiscardPile.Add(card);
+        CurrentTopCard = card;
+
+        // 更新統計數據
+        TotalCardsPlayed++;
+        UpdatePlayerCardCounts();
+
+        // 觸發出牌事件
+        EmitCardPlayed(card, playerIndex);
+        EmitGameStateChanged();
+    }
+
+    // 新增方法：抽牌
+    public Card DrawCard(int playerIndex)
+    {
+        if (DrawPile.Count == 0) return null;
+
+        var card = DrawPile[0];
+        DrawPile.RemoveAt(0);
+
+        // 將牌添加到玩家手牌
+        if (playerIndex == 0)
+        {
+            PlayerHand.Add(card);
+        }
+        else
+        {
+            int computerPlayerIndex = playerIndex - 1;
+            if (computerPlayerIndex < ComputerPlayers.Count)
+            {
+                ComputerPlayers[computerPlayerIndex].Hand.Add(card);
+            }
+        }
+
+        // 更新統計數據
+        TotalCardsDrawn++;
+        UpdatePlayerCardCounts();
+
+        // 觸發抽牌事件
+        EmitCardDrawn(card, playerIndex);
+        EmitGameStateChanged();
+
+        return card;
     }
 }

@@ -49,6 +49,9 @@ public partial class MainGame : Node2D
         cardAnimationManager = new CardAnimationManager();
         AddChild(cardAnimationManager);
 
+        // 連接GameStateManager的事件信號
+        ConnectGameStateManagerSignals();
+
         // 初始化遊戲邏輯
         InitializeGame();
     }
@@ -87,6 +90,70 @@ public partial class MainGame : Node2D
     }
 
 
+
+    private void ConnectGameStateManagerSignals()
+    {
+        // 連接GameStateManager的事件信號
+        if (gameStateManager != null)
+        {
+            gameStateManager.GameStateChanged += OnGameStateChanged;
+            gameStateManager.PlayerTurnChanged += OnPlayerTurnChanged;
+            gameStateManager.CardPlayed += OnCardPlayed;
+            gameStateManager.CardDrawn += OnCardDrawn;
+            gameStateManager.GamePhaseChanged += OnGamePhaseChanged;
+            gameStateManager.SpecialCardEffect += OnSpecialCardEffect;
+            gameStateManager.GameOver += OnGameOver;
+        }
+    }
+
+    // GameStateManager事件處理方法
+    private void OnGameStateChanged()
+    {
+        // 遊戲狀態改變時的處理邏輯
+        GD.Print("遊戲狀態已改變");
+    }
+
+    private void OnPlayerTurnChanged(int playerIndex)
+    {
+        GD.Print($"玩家回合改變: 玩家 {playerIndex}");
+        // 這裡可以添加回合改變時的UI更新邏輯
+    }
+
+    private void OnCardPlayed(Card card, int playerIndex)
+    {
+        string playerName = playerIndex == 0 ? "你" : gameStateManager.GetCurrentPlayerName();
+        GD.Print($"{playerName} 打出: {gameStateManager.GetColorText(card.Color)} {card.CardValue}");
+        AddMessage($"{playerName} 打出: {gameStateManager.GetColorText(card.Color)} {card.CardValue}");
+    }
+
+    private void OnCardDrawn(Card card, int playerIndex)
+    {
+        string playerName = playerIndex == 0 ? "你" : gameStateManager.GetCurrentPlayerName();
+        GD.Print($"{playerName} 抽到: {gameStateManager.GetColorText(card.Color)} {card.CardValue}");
+        AddMessage($"{playerName} 抽到: {gameStateManager.GetColorText(card.Color)} {card.CardValue}");
+    }
+
+    private void OnGamePhaseChanged(int newPhase)
+    {
+        GamePhase phase = (GamePhase)newPhase;
+        GD.Print($"遊戲階段改變: {phase}");
+        // 這裡可以添加階段改變時的UI更新邏輯
+    }
+
+    private void OnSpecialCardEffect(Card card, int effectType)
+    {
+        CardType cardType = (CardType)effectType;
+        GD.Print($"特殊牌效果: {cardType}");
+        // 這裡可以添加特殊牌效果時的UI更新邏輯
+    }
+
+    private void OnGameOver(int winnerPlayerIndex)
+    {
+        string winnerName = winnerPlayerIndex == 0 ? "你" : $"玩家{winnerPlayerIndex + 1}";
+        GD.Print($"遊戲結束！獲勝者: {winnerName}");
+        AddMessage($"遊戲結束！獲勝者: {winnerName}");
+        // 這裡可以添加遊戲結束時的UI更新邏輯
+    }
 
     private void ConnectButtonSignals()
     {
@@ -208,13 +275,7 @@ public partial class MainGame : Node2D
         if (!gameStateManager.EnableAnimations)
         {
             // 如果禁用動畫，直接執行抽牌邏輯
-            var cardToDrawDirect = gameStateManager.DrawPile[0];
-            gameStateManager.DrawPile.RemoveAt(0);
-            gameStateManager.PlayerHand.Add(cardToDrawDirect);
-            
-            // 更新統計數據
-            gameStateManager.TotalCardsDrawn++;
-            UpdatePlayerCardCounts();
+            gameStateManager.DrawCard(0); // 0表示人類玩家
             
             UpdatePlayerHandDisplay();
             UpdateDrawPileDisplay();
@@ -387,12 +448,8 @@ public partial class MainGame : Node2D
         // 移除動畫卡牌
         animatedCard.QueueFree();
 
-        // 將牌添加到玩家手牌
-        gameStateManager.PlayerHand.Add(originalCard);
-
-        // 更新統計數據
-        gameStateManager.TotalCardsDrawn++;
-        UpdatePlayerCardCounts();
+        // 使用GameStateManager的DrawCard方法
+        gameStateManager.DrawCard(0); // 0表示人類玩家
 
         // 更新玩家手牌顯示
         UpdatePlayerHandDisplay();
@@ -690,27 +747,28 @@ public partial class MainGame : Node2D
     {
         GD.Print("出牌動畫完成，執行出牌邏輯");
 
+        // 在移除動畫卡牌之前，先保存原始卡牌的信息
+        var cardColor = originalCard.Color;
+        var cardValue = originalCard.CardValue;
+        var cardType = originalCard.Type;
+
         // 移除動畫卡牌
         animatedCard.QueueFree();
 
+        // 創建一個新的Card對象來執行出牌邏輯
+        var cardToPlay = new Card();
+        cardToPlay.SetCard(cardColor, cardValue, cardType);
+
         // 執行實際的出牌邏輯
-        ExecutePlayCard(originalCard);
+        ExecutePlayCard(cardToPlay);
     }
 
     private void ExecutePlayCard(Card cardToPlay)
     {
         GD.Print($"執行出牌邏輯: {cardToPlay.Color} {cardToPlay.CardValue}");
 
-        // 從玩家手牌中移除這張牌
-        gameStateManager.PlayerHand.Remove(cardToPlay);
-
-        // 將牌添加到棄牌堆
-        gameStateManager.DiscardPile.Add(cardToPlay);
-        gameStateManager.CurrentTopCard = cardToPlay;
-
-        // 更新統計數據
-        gameStateManager.TotalCardsPlayed++;
-        UpdatePlayerCardCounts();
+        // 使用GameStateManager的PlayCard方法
+        gameStateManager.PlayCard(cardToPlay, 0); // 0表示人類玩家
 
         // 清空選中的手牌
         gameStateManager.SelectedCard = null;
@@ -795,7 +853,7 @@ public partial class MainGame : Node2D
         GD.Print("顯示顏色選擇面板");
         
         // 設置遊戲階段為顏色選擇
-        gameStateManager.CurrentGamePhase = GamePhase.ColorSelection;
+        gameStateManager.SetGamePhase(GamePhase.ColorSelection);
         gameStateManager.IsWaitingForColorSelection = true;
         
         if (colorSelectionPanel != null)
@@ -834,7 +892,7 @@ public partial class MainGame : Node2D
         {
             // 重置顏色選擇狀態
             gameStateManager.IsWaitingForColorSelection = false;
-            gameStateManager.CurrentGamePhase = GamePhase.Playing;
+            gameStateManager.SetGamePhase(GamePhase.Playing);
             
             // 隱藏顏色選擇面板
             if (colorSelectionPanel != null)
@@ -879,7 +937,7 @@ public partial class MainGame : Node2D
         GD.Print($"初始化UNO遊戲... 遊玩人數: {gameStateManager.PlayerCount}人");
 
         // 設置遊戲階段為初始化
-        gameStateManager.CurrentGamePhase = GamePhase.Initializing;
+        gameStateManager.SetGamePhase(GamePhase.Initializing);
 
         // 創建電腦玩家
         CreateComputerPlayers();
@@ -897,7 +955,7 @@ public partial class MainGame : Node2D
         ShowDrawPileBack();
 
         // 設置遊戲階段為發牌
-        gameStateManager.CurrentGamePhase = GamePhase.Dealing;
+        gameStateManager.SetGamePhase(GamePhase.Dealing);
 
         // 通過動畫發放初始手牌
         StartInitialDealAnimation();
@@ -1108,15 +1166,8 @@ public partial class MainGame : Node2D
                 GD.Print($"電腦玩家 {computerPlayer.PlayerName} 打出: {cardToPlay.Color} {cardToPlay.CardValue}");
                 AddMessage($"{computerPlayer.PlayerName} 打出: {GetColorText(cardToPlay.Color)} {cardToPlay.CardValue}");
 
-                // 從電腦玩家手牌中移除這張牌
-                computerPlayer.Hand.Remove(cardToPlay);
-                // 添加到棄牌堆
-                gameStateManager.DiscardPile.Add(cardToPlay);
-                gameStateManager.CurrentTopCard = cardToPlay;
-
-                // 更新統計數據
-                gameStateManager.TotalCardsPlayed++;
-                UpdatePlayerCardCounts();
+                // 使用GameStateManager的PlayCard方法
+                gameStateManager.PlayCard(cardToPlay, gameStateManager.CurrentPlayerIndex);
 
                 // 更新顯示
                 UpdateDiscardPileDisplay();
@@ -1197,16 +1248,14 @@ public partial class MainGame : Node2D
                 // 電腦玩家抽一張牌
                 if (gameStateManager.DrawPile.Count > 0)
                 {
-                    var drawnCard = gameStateManager.DrawPile[0];
-                    gameStateManager.DrawPile.RemoveAt(0);
-                    computerPlayer.Hand.Add(drawnCard);
+                    // 使用GameStateManager的DrawCard方法
+                    var drawnCard = gameStateManager.DrawCard(gameStateManager.CurrentPlayerIndex);
                     
-                    // 更新統計數據
-                    gameStateManager.TotalCardsDrawn++;
-                    UpdatePlayerCardCounts();
-                    
-                    GD.Print($"電腦玩家 {computerPlayer.PlayerName} 抽到: {drawnCard.Color} {drawnCard.CardValue}");
-                    AddMessage($"{computerPlayer.PlayerName} 抽到: {GetColorText(drawnCard.Color)} {drawnCard.CardValue}");
+                    if (drawnCard != null)
+                    {
+                        GD.Print($"電腦玩家 {computerPlayer.PlayerName} 抽到: {drawnCard.Color} {drawnCard.CardValue}");
+                        AddMessage($"{computerPlayer.PlayerName} 抽到: {GetColorText(drawnCard.Color)} {drawnCard.CardValue}");
+                    }
                 }
                 else
                 {
@@ -1413,7 +1462,7 @@ public partial class MainGame : Node2D
         // 開始遊戲
         UpdateGameStatusDisplay();
         // 設置遊戲階段為遊戲中
-        gameStateManager.CurrentGamePhase = GamePhase.Playing;
+        gameStateManager.SetGamePhase(GamePhase.Playing);
 
         GD.Print("遊戲初始化完成，可以開始遊戲");
 
