@@ -26,19 +26,11 @@ public partial class MainGame : Node2D
     // 訊息框相關
     private VBoxContainer messageContainer;
     private ScrollContainer messageScrollContainer;
-    private bool isScrolling = false; // 滾動狀態標記
 
     // 手牌滾動相關
     private ScrollContainer playerHandScrollContainer;
-    private int currentHandScrollIndex = 0;
-    private int maxVisibleCards = 8; // 最多顯示8張牌
-
-    // 出牌相關
-    private Card selectedCard = null; // 當前選中的手牌
-    private int selectedCardIndex = -1; // 當前選中手牌的索引
 
     // 動畫相關
-    private bool isAnimating = false;
     private Tween currentTween;
     private CardAnimationManager cardAnimationManager;
 
@@ -132,7 +124,7 @@ public partial class MainGame : Node2D
     {
         GD.Print("抽牌按鈕被按下");
 
-        if (isAnimating)
+        if (gameStateManager.IsAnimating)
         {
             GD.Print("動畫進行中，忽略抽牌請求");
             return;
@@ -189,13 +181,13 @@ public partial class MainGame : Node2D
         GD.Print("出牌按鈕被按下");
 
         // 檢查是否有選中的手牌
-        if (selectedCard != null)
+        if (gameStateManager.SelectedCard != null)
         {
                     // 檢查是否可以打出這張牌
-        if (gameStateManager.CurrentTopCard != null && selectedCard.CanPlayOn(gameStateManager.CurrentTopCard))
+        if (gameStateManager.CurrentTopCard != null && gameStateManager.SelectedCard.CanPlayOn(gameStateManager.CurrentTopCard))
             {
-                GD.Print($"打出卡牌: {selectedCard.Color} {selectedCard.CardValue}");
-                PlayCard(selectedCard);
+                GD.Print($"打出卡牌: {gameStateManager.SelectedCard.Color} {gameStateManager.SelectedCard.CardValue}");
+                PlayCard(gameStateManager.SelectedCard);
             }
             else
             {
@@ -213,7 +205,7 @@ public partial class MainGame : Node2D
         if (gameStateManager.DrawPile.Count == 0) return;
 
         GD.Print("開始發牌動畫...");
-        isAnimating = true;
+        gameStateManager.IsAnimating = true;
         drawCardButton.Disabled = true; // 禁用按鈕防止重複點擊
 
         // 從抽牌堆取出一張牌
@@ -246,7 +238,7 @@ public partial class MainGame : Node2D
 
             // 計算目標位置（玩家手牌區域的特定位置）
             Vector2 targetPos;
-            if (gameStateManager.PlayerHand.Count < maxVisibleCards)
+            if (gameStateManager.PlayerHand.Count < gameStateManager.MaxVisibleCards)
             {
                 // 如果手牌少於最大顯示數量，移動到對應的位置
                 float cardWidth = 80.0f;
@@ -372,7 +364,7 @@ public partial class MainGame : Node2D
         UpdateDrawPileDisplay();
 
         // 重置狀態
-        isAnimating = false;
+        gameStateManager.IsAnimating = false;
         
         // 注意：按鈕狀態會在 NextPlayer() 方法中正確設置
         // 這裡不需要重新啟用按鈕，因為 NextPlayer() 會根據當前玩家設置正確的按鈕狀態
@@ -417,7 +409,7 @@ public partial class MainGame : Node2D
                 cardInstance.CardClicked += OnPlayerCardClicked;
 
                 // 檢查是否是選中的牌（使用索引來區分相同的牌）
-                if (selectedCardIndex == i)
+                if (gameStateManager.SelectedCardIndex == i)
                 {
                     GD.Print($"=== 設置選中狀態 ===");
                     GD.Print($"選中的牌索引: {i}, 牌: {card.Color} {card.CardValue}");
@@ -450,11 +442,11 @@ public partial class MainGame : Node2D
     {
         if (playerHandScrollContainer != null)
         {
-            // 計算滾動範圍
-            int totalCards = gameStateManager.PlayerHand.Count;
-            int maxScrollIndex = Math.Max(0, totalCards - maxVisibleCards);
+                    // 計算滾動範圍
+        int totalCards = gameStateManager.PlayerHand.Count;
+        int maxScrollIndex = Math.Max(0, totalCards - gameStateManager.MaxVisibleCards);
 
-            GD.Print($"滾動狀態: 當前索引={currentHandScrollIndex}, 最大索引={maxScrollIndex}, 總牌數={totalCards}");
+        GD.Print($"滾動狀態: 當前索引={gameStateManager.CurrentHandScrollIndex}, 最大索引={maxScrollIndex}, 總牌數={totalCards}");
         }
     }
 
@@ -480,11 +472,11 @@ public partial class MainGame : Node2D
         GD.Print($"玩家點擊了手牌: {clickedCard.Color} {clickedCard.CardValue}, 索引: {cardIndex}");
 
         // 如果點擊的是同一張牌，則取消選中
-        if (selectedCardIndex == cardIndex)
+        if (gameStateManager.SelectedCardIndex == cardIndex)
         {
             GD.Print($"取消選中這張牌，索引: {cardIndex}");
-            selectedCard = null;
-            selectedCardIndex = -1; // 重置索引
+            gameStateManager.SelectedCard = null;
+            gameStateManager.SelectedCardIndex = -1; // 重置索引
             // 禁用出牌按鈕
             if (playCardButton != null)
             {
@@ -496,9 +488,9 @@ public partial class MainGame : Node2D
         }
 
         // 設置選中的手牌
-        selectedCard = clickedCard;
-        selectedCardIndex = cardIndex; // 使用牌的索引屬性
-        GD.Print($"設置選中的牌: {selectedCard.Color} {selectedCard.CardValue}, 索引: {selectedCardIndex}");
+        gameStateManager.SelectedCard = clickedCard;
+        gameStateManager.SelectedCardIndex = cardIndex; // 使用牌的索引屬性
+        GD.Print($"設置選中的牌: {gameStateManager.SelectedCard.Color} {gameStateManager.SelectedCard.CardValue}, 索引: {gameStateManager.SelectedCardIndex}");
 
         // 檢查是否可以打出這張牌
         if (gameStateManager.CurrentTopCard != null && clickedCard.CanPlayOn(gameStateManager.CurrentTopCard))
@@ -546,36 +538,36 @@ public partial class MainGame : Node2D
 
             // 設置初始位置（從手牌位置開始）
             Vector2 startPos = Vector2.Zero;
-            if (playerHandUI != null && playerHandUI.GetChildCount() > 0 && selectedCardIndex >= 0)
+            if (playerHandUI != null && playerHandUI.GetChildCount() > 0 && gameStateManager.SelectedCardIndex >= 0)
             {
-                // 找到選中卡牌在UI中的位置（使用索引來精確定位）
-                int uiIndex = 0;
-                for (int i = 0; i < playerHandUI.GetChildCount(); i++)
+                            // 找到選中卡牌在UI中的位置（使用索引來精確定位）
+            int uiIndex = 0;
+            for (int i = 0; i < playerHandUI.GetChildCount(); i++)
+            {
+                var child = playerHandUI.GetChild(i);
+                if (child is MarginContainer marginContainer && marginContainer.GetChild(0) is Card uiCard)
                 {
-                    var child = playerHandUI.GetChild(i);
-                    if (child is MarginContainer marginContainer && marginContainer.GetChild(0) is Card uiCard)
+                    // 這是選中的卡牌（包裝在MarginContainer中）
+                    if (uiIndex == gameStateManager.SelectedCardIndex)
                     {
-                        // 這是選中的卡牌（包裝在MarginContainer中）
-                        if (uiIndex == selectedCardIndex)
-                        {
-                            startPos = uiCard.GlobalPosition;
-                            GD.Print($"找到選中卡牌位置（MarginContainer）: {startPos}, 索引: {selectedCardIndex}");
-                            break;
-                        }
-                        uiIndex++;
+                        startPos = uiCard.GlobalPosition;
+                        GD.Print($"找到選中卡牌位置（MarginContainer）: {startPos}, 索引: {gameStateManager.SelectedCardIndex}");
+                        break;
                     }
-                    else if (child is Card cardNode)
-                    {
-                        // 檢查是否是選中的卡牌（使用索引）
-                        if (uiIndex == selectedCardIndex)
-                        {
-                            startPos = cardNode.GlobalPosition;
-                            GD.Print($"找到選中卡牌位置（Card）: {startPos}, 索引: {selectedCardIndex}");
-                            break;
-                        }
-                        uiIndex++;
-                    }
+                    uiIndex++;
                 }
+                else if (child is Card cardNode)
+                {
+                    // 檢查是否是選中的卡牌（使用索引）
+                    if (uiIndex == gameStateManager.SelectedCardIndex)
+                    {
+                        startPos = cardNode.GlobalPosition;
+                        GD.Print($"找到選中卡牌位置（Card）: {startPos}, 索引: {gameStateManager.SelectedCardIndex}");
+                        break;
+                    }
+                    uiIndex++;
+                }
+            }
             }
 
             // 如果找不到位置，使用默認位置
@@ -668,8 +660,8 @@ public partial class MainGame : Node2D
         gameStateManager.CurrentTopCard = cardToPlay;
 
         // 清空選中的手牌
-        selectedCard = null;
-        selectedCardIndex = -1; // 重置索引
+        gameStateManager.SelectedCard = null;
+        gameStateManager.SelectedCardIndex = -1; // 重置索引
 
         // 更新顯示
         UpdatePlayerHandDisplay();

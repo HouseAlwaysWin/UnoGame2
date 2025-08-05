@@ -13,4 +13,18 @@ public partial class GameStateManager : Node
     public int PlayerCount { get; set; } = 4; // 遊玩人數，預設4人
     public List<ComputerPlayer> ComputerPlayers = new List<ComputerPlayer>(); // 電腦玩家列表
     public int CurrentPlayerIndex = 0; // 當前玩家索引（0為人類玩家）
+
+    // 動畫狀態
+    public bool IsAnimating { get; set; } = false;
+
+    // 手牌選擇狀態
+    public Card SelectedCard { get; set; } = null;
+    public int SelectedCardIndex { get; set; } = -1;
+
+    // 手牌滾動狀態
+    public int CurrentHandScrollIndex { get; set; } = 0;
+    public int MaxVisibleCards { get; set; } = 8;
+
+    // 訊息系統狀態
+    public bool IsScrolling { get; set; } = false;
 }
