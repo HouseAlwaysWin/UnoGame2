@@ -37,7 +37,7 @@ public partial class MainScreen : Control
         if (gameScene != null)
         {
             var gameInstance = gameScene.Instantiate<MainGame>();
-            gameInstance.PlayerCount = playerCount;
+            // PlayerCount 現在在 GameStateManager 中管理
             GetTree().Root.AddChild(gameInstance);
             GetTree().CurrentScene = gameInstance;
         }
