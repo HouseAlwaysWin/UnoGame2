@@ -14,12 +14,21 @@ public partial class MainGame : Node2D
 
     public override void _Ready()
     {
-        GD.Print("主遊戲場景已加載");
+        GameLogger.Info("主遊戲場景已加載");
+        
+        // 載入遊戲配置
+        GameConfig.LoadConfig();
+        
         gameStateManager = GetNode<GameStateManager>("GameStateManager");
 
         // 創建並初始化UI管理器
         uiManager = new UIManager();
         AddChild(uiManager);
+
+        // 創建UI更新管理器
+        var uiUpdateManager = new UIUpdateManager();
+        AddChild(uiUpdateManager);
+        uiUpdateManager.Initialize(uiManager, gameStateManager);
 
         // 連接UI管理器的事件信號
         ConnectUIManagerSignals();
@@ -120,18 +129,18 @@ public partial class MainGame : Node2D
 
     private void OnDrawCardPressed()
     {
-        GD.Print("抽牌按鈕被按下");
+        GameLogger.PlayerAction("玩家", "按下抽牌按鈕");
 
         if (gameStateManager.IsAnimating)
         {
-            GD.Print("動畫進行中，忽略抽牌請求");
+            GameLogger.Warning("動畫進行中，忽略抽牌請求");
             return;
         }
 
         // 檢查抽牌堆是否為空，如果為空則重新洗牌
         if (gameStateManager.DrawPile.Count == 0)
         {
-            GD.Print("抽牌堆已空，重新洗牌");
+            GameLogger.GameState("抽牌堆已空，重新洗牌");
             uiManager.AddMessage("抽牌堆已空，重新洗牌");
             
             // 將棄牌堆的牌（除了頂牌）重新洗牌
