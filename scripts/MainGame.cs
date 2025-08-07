@@ -5,31 +5,9 @@ using System.Threading.Tasks;
 
 public partial class MainGame : Node2D
 {
-    private Button drawCardButton;
-    private Button unoButton;
-    private Button backToMenuButton;
-    private Button playCardButton; // 新增出牌按鈕
-    private Panel colorSelectionPanel;
-    private Button redButton, blueButton, greenButton, yellowButton;
     private GameStateManager gameStateManager;
-
-    // UI 引用
-    private TextureRect drawPileUI;
-    private TextureRect discardPileUI;
-    private HBoxContainer playerHandUI; // 改回 HBoxContainer 類型
-
-    // 遊戲狀態標籤
-    private Label currentPlayerLabel;
-    private Label currentColorLabel;
-    private Label cardsLeftLabel;
-
-    // 訊息框相關
-    private VBoxContainer messageContainer;
-    private ScrollContainer messageScrollContainer;
-
-    // 手牌滾動相關
-    private ScrollContainer playerHandScrollContainer;
-
+    private UIManager uiManager;
+    
     // 動畫相關
     private Tween currentTween;
     private CardAnimationManager cardAnimationManager;
@@ -39,11 +17,12 @@ public partial class MainGame : Node2D
         GD.Print("主遊戲場景已加載");
         gameStateManager = GetNode<GameStateManager>("GameStateManager");
 
-        // 獲取UI元素引用
-        GetUIReferences();
+        // 創建並初始化UI管理器
+        uiManager = new UIManager();
+        AddChild(uiManager);
 
-        // 連接按鈕信號
-        ConnectButtonSignals();
+        // 連接UI管理器的事件信號
+        ConnectUIManagerSignals();
 
         // 創建卡牌動畫管理器
         cardAnimationManager = new CardAnimationManager();
@@ -56,40 +35,22 @@ public partial class MainGame : Node2D
         InitializeGame();
     }
 
-    private void GetUIReferences()
+
+
+
+
+    private void ConnectUIManagerSignals()
     {
-        // 獲取按鈕引用
-        drawCardButton = GetNode<Button>("UILayer/UI/ActionButtons/DrawCardButton");
-        unoButton = GetNode<Button>("UILayer/UI/ActionButtons/UnoButton");
-        backToMenuButton = GetNode<Button>("UILayer/UI/TopPanel/GameInfo/BackToMenuButton");
-        playCardButton = GetNode<Button>("UILayer/UI/ActionButtons/PlayCardButton"); // 獲取出牌按鈕
-
-        // 獲取顏色選擇面板和按鈕
-        colorSelectionPanel = GetNode<Panel>("UILayer/UI/ColorSelectionPanel");
-        redButton = GetNode<Button>("UILayer/UI/ColorSelectionPanel/ColorButtons/RedButton");
-        blueButton = GetNode<Button>("UILayer/UI/ColorSelectionPanel/ColorButtons/BlueButton");
-        greenButton = GetNode<Button>("UILayer/UI/ColorSelectionPanel/ColorButtons/GreenButton");
-        yellowButton = GetNode<Button>("UILayer/UI/ColorSelectionPanel/ColorButtons/YellowButton");
-
-        // 獲取卡牌顯示區域引用
-        drawPileUI = GetNode<TextureRect>("UILayer/UI/DrawPile");
-        discardPileUI = GetNode<TextureRect>("UILayer/UI/CenterArea/DiscardPile");
-        playerHandUI = GetNode<HBoxContainer>("UILayer/UI/PlayerHand/ScrollContainer/CardsContainer");
-
-        // 獲取手牌滾動按鈕和容器
-        playerHandScrollContainer = GetNode<ScrollContainer>("UILayer/UI/PlayerHand/ScrollContainer");
-
-        // 獲取遊戲狀態標籤
-        currentPlayerLabel = GetNode<Label>("UILayer/UI/TopPanel/GameInfo/CurrentPlayer");
-        currentColorLabel = GetNode<Label>("UILayer/UI/TopPanel/GameInfo/CurrentColor");
-        cardsLeftLabel = GetNode<Label>("UILayer/UI/TopPanel/GameInfo/CardsLeft");
-
-        // 獲取訊息框
-        messageContainer = GetNode<VBoxContainer>("UILayer/UI/MessagePanel/MessageScrollContainer/MessageContainer");
-        messageScrollContainer = GetNode<ScrollContainer>("UILayer/UI/MessagePanel/MessageScrollContainer");
+        // 連接UI管理器的事件信號
+        if (uiManager != null)
+        {
+            uiManager.OnDrawCardPressed += OnDrawCardPressed;
+            uiManager.OnPlayCardPressed += OnPlayCardPressed;
+            uiManager.OnUnoPressed += OnUnoPressed;
+            uiManager.OnBackToMenuPressed += OnBackToMenuPressed;
+            uiManager.OnColorSelected += OnColorSelected;
+        }
     }
-
-
 
     private void ConnectGameStateManagerSignals()
     {
@@ -123,14 +84,14 @@ public partial class MainGame : Node2D
     {
         string playerName = playerIndex == 0 ? "你" : gameStateManager.GetCurrentPlayerName();
         GD.Print($"{playerName} 打出: {gameStateManager.GetColorText(card.Color)} {card.CardValue}");
-        AddMessage($"{playerName} 打出: {gameStateManager.GetColorText(card.Color)} {card.CardValue}");
+        uiManager.AddMessage($"{playerName} 打出: {gameStateManager.GetColorText(card.Color)} {card.CardValue}");
     }
 
     private void OnCardDrawn(Card card, int playerIndex)
     {
         string playerName = playerIndex == 0 ? "你" : gameStateManager.GetCurrentPlayerName();
         GD.Print($"{playerName} 抽到: {gameStateManager.GetColorText(card.Color)} {card.CardValue}");
-        AddMessage($"{playerName} 抽到: {gameStateManager.GetColorText(card.Color)} {card.CardValue}");
+        uiManager.AddMessage($"{playerName} 抽到: {gameStateManager.GetColorText(card.Color)} {card.CardValue}");
     }
 
     private void OnGamePhaseChanged(int newPhase)
@@ -151,41 +112,11 @@ public partial class MainGame : Node2D
     {
         string winnerName = winnerPlayerIndex == 0 ? "你" : $"玩家{winnerPlayerIndex + 1}";
         GD.Print($"遊戲結束！獲勝者: {winnerName}");
-        AddMessage($"遊戲結束！獲勝者: {winnerName}");
+        uiManager.AddMessage($"遊戲結束！獲勝者: {winnerName}");
         // 這裡可以添加遊戲結束時的UI更新邏輯
     }
 
-    private void ConnectButtonSignals()
-    {
-        // 連接動作按鈕
-        if (drawCardButton != null)
-            drawCardButton.Pressed += OnDrawCardPressed;
 
-        if (playCardButton != null)
-            playCardButton.Pressed += OnPlayCardPressed;
-
-        if (unoButton != null)
-            unoButton.Pressed += OnUnoPressed;
-
-        if (backToMenuButton != null)
-            backToMenuButton.Pressed += OnBackToMenuPressed;
-
-        // 連接顏色選擇按鈕
-        if (redButton != null)
-            redButton.Pressed += () => OnColorSelected("紅色");
-
-        if (blueButton != null)
-            blueButton.Pressed += () => OnColorSelected("藍色");
-
-        if (greenButton != null)
-            greenButton.Pressed += () => OnColorSelected("綠色");
-
-        if (yellowButton != null)
-            yellowButton.Pressed += () => OnColorSelected("黃色");
-
-        // 連接滾動按鈕
-        // 移除對左右滾動按鈕的引用和相關代碼
-    }
 
     private void OnDrawCardPressed()
     {
@@ -201,7 +132,7 @@ public partial class MainGame : Node2D
         if (gameStateManager.DrawPile.Count == 0)
         {
             GD.Print("抽牌堆已空，重新洗牌");
-            AddMessage("抽牌堆已空，重新洗牌");
+            uiManager.AddMessage("抽牌堆已空，重新洗牌");
             
             // 將棄牌堆的牌（除了頂牌）重新洗牌
             if (gameStateManager.DiscardPile.Count > 1)
@@ -227,7 +158,7 @@ public partial class MainGame : Node2D
                 gameStateManager.DiscardPile.Add(gameStateManager.CurrentTopCard);
                 
                 GD.Print($"重新洗牌完成，抽牌堆: {gameStateManager.DrawPile.Count}張");
-                AddMessage($"重新洗牌完成，抽牌堆: {gameStateManager.DrawPile.Count}張");
+                uiManager.AddMessage($"重新洗牌完成，抽牌堆: {gameStateManager.DrawPile.Count}張");
             }
         }
 
@@ -239,7 +170,7 @@ public partial class MainGame : Node2D
         else
         {
             GD.Print("抽牌堆仍然為空，無法抽牌");
-            AddMessage("抽牌堆仍然為空，無法抽牌");
+            uiManager.AddMessage("抽牌堆仍然為空，無法抽牌");
         }
     }
 
@@ -250,8 +181,8 @@ public partial class MainGame : Node2D
         // 檢查是否有選中的手牌
         if (gameStateManager.SelectedCard != null)
         {
-                    // 檢查是否可以打出這張牌
-        if (gameStateManager.CanPlayCard(gameStateManager.SelectedCard))
+            // 檢查是否可以打出這張牌
+            if (gameStateManager.CanPlayCard(gameStateManager.SelectedCard))
             {
                 GD.Print($"打出卡牌: {gameStateManager.SelectedCard.Color} {gameStateManager.SelectedCard.CardValue}");
                 PlayCard(gameStateManager.SelectedCard);
@@ -281,26 +212,14 @@ public partial class MainGame : Node2D
             UpdateDrawPileDisplay();
             UpdateGameStatusDisplay();
             
-            // 抽牌後重新啟用按鈕，保持當前玩家回合
-            if (drawCardButton != null)
-            {
-                drawCardButton.Disabled = false;
-                GD.Print("抽牌完成，重新啟用抽牌按鈕");
-            }
-            if (playCardButton != null)
-            {
-                playCardButton.Disabled = true; // 需要選擇牌才能出牌
-            }
-            if (unoButton != null)
-            {
-                unoButton.Disabled = false;
-            }
+            GD.Print("抽牌完成（禁用動畫），輪到下一個玩家");
+            NextPlayer();
             return;
         }
 
         GD.Print("開始發牌動畫...");
         gameStateManager.IsAnimating = true;
-        drawCardButton.Disabled = true; // 禁用按鈕防止重複點擊
+        uiManager.SetButtonStates(false, false, true); // 禁用抽牌和出牌按鈕，保持UNO按鈕啟用
 
         // 從抽牌堆取出一張牌
         var cardToDraw = gameStateManager.DrawPile[0];
@@ -324,27 +243,44 @@ public partial class MainGame : Node2D
             animatedCard.Modulate = new Color(1, 1, 1, 1); // 確保不透明度為1
 
             // 設置初始位置（從抽牌堆位置開始）
-            Vector2 startPos = drawPileUI.GlobalPosition + drawPileUI.Size / 2;
+            Vector2 startPos = Vector2.Zero;
+            if (uiManager?.DrawPileUI != null)
+            {
+                startPos = uiManager.DrawPileUI.GlobalPosition + uiManager.DrawPileUI.Size / 2;
+            }
+            else
+            {
+                GD.PrintErr("DrawPileUI 引用為空");
+                return;
+            }
             animatedCard.GlobalPosition = startPos;
             animatedCard.ZIndex = 1000; // 確保在最上層
 
             GD.Print($"動畫卡牌初始位置: {startPos}");
 
             // 計算目標位置（玩家手牌區域的特定位置）
-            Vector2 targetPos;
-            if (gameStateManager.PlayerHand.Count < gameStateManager.MaxVisibleCards)
+            Vector2 targetPos = Vector2.Zero;
+            if (uiManager?.PlayerHandUI != null)
             {
-                // 如果手牌少於最大顯示數量，移動到對應的位置
-                float cardWidth = 80.0f;
-                float cardSpacing = 10.0f;
-                float startX = playerHandUI.GlobalPosition.X + cardWidth / 2;
-                float targetX = startX + (gameStateManager.PlayerHand.Count * (cardWidth + cardSpacing));
-                targetPos = new Vector2(targetX, playerHandUI.GlobalPosition.Y + playerHandUI.Size.Y / 2);
+                if (gameStateManager.PlayerHand.Count < gameStateManager.MaxVisibleCards)
+                {
+                    // 如果手牌少於最大顯示數量，移動到對應的位置
+                    float cardWidth = 80.0f;
+                    float cardSpacing = 10.0f;
+                    float startX = uiManager.PlayerHandUI.GlobalPosition.X + cardWidth / 2;
+                    float targetX = startX + (gameStateManager.PlayerHand.Count * (cardWidth + cardSpacing));
+                    targetPos = new Vector2(targetX, uiManager.PlayerHandUI.GlobalPosition.Y + uiManager.PlayerHandUI.Size.Y / 2);
+                }
+                else
+                {
+                    // 如果手牌已經很多，移動到滾動區域的末尾
+                    targetPos = uiManager.PlayerHandUI.GlobalPosition + new Vector2(uiManager.PlayerHandUI.Size.X - 40, uiManager.PlayerHandUI.Size.Y / 2);
+                }
             }
             else
             {
-                // 如果手牌已經很多，移動到滾動區域的末尾
-                targetPos = playerHandUI.GlobalPosition + new Vector2(playerHandUI.Size.X - 40, playerHandUI.Size.Y / 2);
+                GD.PrintErr("PlayerHandUI 引用為空");
+                return;
             }
 
             GD.Print($"動畫卡牌目標位置: {targetPos}, 當前手牌數量: {gameStateManager.PlayerHand.Count}");
@@ -459,116 +395,38 @@ public partial class MainGame : Node2D
 
         // 重置狀態
         gameStateManager.IsAnimating = false;
-        
-        // 注意：按鈕狀態會在 NextPlayer() 方法中正確設置
-        // 這裡不需要重新啟用按鈕，因為 NextPlayer() 會根據當前玩家設置正確的按鈕狀態
 
         // 更新遊戲狀態顯示
         UpdateGameStatusDisplay();
 
         GD.Print($"抽牌完成，玩家手牌: {gameStateManager.PlayerHand.Count} 張，抽牌堆剩餘: {gameStateManager.DrawPile.Count} 張");
 
-        // 抽牌後重新啟用按鈕，保持當前玩家回合
-        if (drawCardButton != null)
-        {
-            drawCardButton.Disabled = false;
-            GD.Print("抽牌完成，重新啟用抽牌按鈕");
-        }
-        if (playCardButton != null)
-        {
-            playCardButton.Disabled = true; // 需要選擇牌才能出牌
-        }
-        if (unoButton != null)
-        {
-            unoButton.Disabled = false;
-        }
+        // 抽牌後輪到下一個玩家（根據UNO規則）
+        GD.Print("抽牌完成，輪到下一個玩家");
+        NextPlayer();
     }
 
     private void UpdatePlayerHandDisplay()
     {
-        GD.Print($"更新玩家手牌顯示，當前手牌數量: {gameStateManager.PlayerHand.Count}");
-
-        // 清除現有的手牌顯示
-        foreach (Node child in playerHandUI.GetChildren())
+        if (uiManager != null)
         {
-            if (child is Card || child is MarginContainer)
-            {
-                child.QueueFree();
-            }
+            uiManager.UpdatePlayerHandDisplay(gameStateManager.PlayerHand, gameStateManager.SelectedCardIndex, OnPlayerCardClicked);
         }
-
-        GD.Print($"清除了現有的手牌元素");
-
-        // 顯示玩家手牌
-        for (int i = 0; i < gameStateManager.PlayerHand.Count; i++)
+        else
         {
-            var cardScene = ResourceLoader.Load<PackedScene>("res://scenes/card.tscn");
-            if (cardScene != null)
-            {
-                var cardInstance = cardScene.Instantiate<Card>();
-                var card = gameStateManager.PlayerHand[i];
-                cardInstance.SetCard(card.Color, card.CardValue, card.Type);
-                cardInstance.SetCardFront();
-
-                // 設置牌的索引並添加點擊事件
-                cardInstance.HandIndex = i;
-                cardInstance.CardClicked += OnPlayerCardClicked;
-
-                // 檢查是否是選中的牌（使用索引來區分相同的牌）
-                if (gameStateManager.SelectedCardIndex == i)
-                {
-                    GD.Print($"=== 設置選中狀態 ===");
-                    GD.Print($"選中的牌索引: {i}, 牌: {card.Color} {card.CardValue}");
-
-                    // 為選中的牌創建 MarginContainer 來實現向上移動
-                    var marginContainer = new MarginContainer();
-                    marginContainer.AddThemeConstantOverride("margin_top", -20); // 向上移動20像素
-                    marginContainer.AddChild(cardInstance);
-                    playerHandUI.AddChild(marginContainer);
-
-                    GD.Print($"已為選中牌創建 MarginContainer，向上移動20像素");
-                }
-                else
-                {
-                    GD.Print($"非選中的牌: {card.Color} {card.CardValue}");
-                    playerHandUI.AddChild(cardInstance);
-                }
-
-                GD.Print($"添加了手牌: {card.Color} {card.CardValue}");
-            }
-        }
-
-        // 更新滾動按鈕狀態
-        UpdateScrollButtons();
-
-        GD.Print($"玩家手牌顯示更新完成，總共 {gameStateManager.PlayerHand.Count} 張牌");
-    }
-
-    private void UpdateScrollButtons()
-    {
-        if (playerHandScrollContainer != null)
-        {
-                    // 計算滾動範圍
-        int totalCards = gameStateManager.PlayerHand.Count;
-        int maxScrollIndex = Math.Max(0, totalCards - gameStateManager.MaxVisibleCards);
-
-        GD.Print($"滾動狀態: 當前索引={gameStateManager.CurrentHandScrollIndex}, 最大索引={maxScrollIndex}, 總牌數={totalCards}");
+            GD.PrintErr("UIManager 引用為空，無法更新玩家手牌顯示");
         }
     }
 
     private void UpdateDrawPileDisplay()
     {
-        if (gameStateManager.DrawPile.Count > 0)
+        if (uiManager != null)
         {
-            CreateDrawPileStack();
+            uiManager.UpdateDrawPileDisplay(gameStateManager.DrawPile.Count);
         }
         else
         {
-            // 清空抽牌堆顯示
-            foreach (Node child in drawPileUI.GetChildren())
-            {
-                child.QueueFree();
-            }
+            GD.PrintErr("UIManager 引用為空，無法更新抽牌堆顯示");
         }
     }
 
@@ -584,9 +442,13 @@ public partial class MainGame : Node2D
             gameStateManager.SelectedCard = null;
             gameStateManager.SelectedCardIndex = -1; // 重置索引
             // 禁用出牌按鈕
-            if (playCardButton != null)
+            if (uiManager != null)
             {
-                playCardButton.Disabled = true;
+                uiManager.SetButtonStates(true, false, true);
+            }
+            else
+            {
+                GD.PrintErr("UIManager 引用為空");
             }
             // 更新手牌顯示以重置所有牌的位置
             UpdatePlayerHandDisplay();
@@ -603,18 +465,26 @@ public partial class MainGame : Node2D
         {
             GD.Print("可以打出這張牌！");
             // 啟用出牌按鈕
-            if (playCardButton != null)
+            if (uiManager != null)
             {
-                playCardButton.Disabled = false;
+                uiManager.SetButtonStates(true, true, true);
+            }
+            else
+            {
+                GD.PrintErr("UIManager 引用為空");
             }
         }
         else
         {
             GD.Print("這張牌不能打出");
             // 禁用出牌按鈕
-            if (playCardButton != null)
+            if (uiManager != null)
             {
-                playCardButton.Disabled = true;
+                uiManager.SetButtonStates(true, false, true);
+            }
+            else
+            {
+                GD.PrintErr("UIManager 引用為空");
             }
         }
 
@@ -644,36 +514,36 @@ public partial class MainGame : Node2D
 
             // 設置初始位置（從手牌位置開始）
             Vector2 startPos = Vector2.Zero;
-            if (playerHandUI != null && playerHandUI.GetChildCount() > 0 && gameStateManager.SelectedCardIndex >= 0)
+            if (uiManager.PlayerHandUI != null && uiManager.PlayerHandUI.GetChildCount() > 0 && gameStateManager.SelectedCardIndex >= 0)
             {
-                            // 找到選中卡牌在UI中的位置（使用索引來精確定位）
-            int uiIndex = 0;
-            for (int i = 0; i < playerHandUI.GetChildCount(); i++)
-            {
-                var child = playerHandUI.GetChild(i);
-                if (child is MarginContainer marginContainer && marginContainer.GetChild(0) is Card uiCard)
+                // 找到選中卡牌在UI中的位置（使用索引來精確定位）
+                int uiIndex = 0;
+                for (int i = 0; i < uiManager.PlayerHandUI.GetChildCount(); i++)
                 {
-                    // 這是選中的卡牌（包裝在MarginContainer中）
-                    if (uiIndex == gameStateManager.SelectedCardIndex)
+                    var child = uiManager.PlayerHandUI.GetChild(i);
+                    if (child is MarginContainer marginContainer && marginContainer.GetChild(0) is Card uiCard)
                     {
-                        startPos = uiCard.GlobalPosition;
-                        GD.Print($"找到選中卡牌位置（MarginContainer）: {startPos}, 索引: {gameStateManager.SelectedCardIndex}");
-                        break;
+                        // 這是選中的卡牌（包裝在MarginContainer中）
+                        if (uiIndex == gameStateManager.SelectedCardIndex)
+                        {
+                            startPos = uiCard.GlobalPosition;
+                            GD.Print($"找到選中卡牌位置（MarginContainer）: {startPos}, 索引: {gameStateManager.SelectedCardIndex}");
+                            break;
+                        }
+                        uiIndex++;
                     }
-                    uiIndex++;
-                }
-                else if (child is Card cardNode)
-                {
-                    // 檢查是否是選中的卡牌（使用索引）
-                    if (uiIndex == gameStateManager.SelectedCardIndex)
+                    else if (child is Card cardNode)
                     {
-                        startPos = cardNode.GlobalPosition;
-                        GD.Print($"找到選中卡牌位置（Card）: {startPos}, 索引: {gameStateManager.SelectedCardIndex}");
-                        break;
+                        // 檢查是否是選中的卡牌（使用索引）
+                        if (uiIndex == gameStateManager.SelectedCardIndex)
+                        {
+                            startPos = cardNode.GlobalPosition;
+                            GD.Print($"找到選中卡牌位置（Card）: {startPos}, 索引: {gameStateManager.SelectedCardIndex}");
+                            break;
+                        }
+                        uiIndex++;
                     }
-                    uiIndex++;
                 }
-            }
             }
 
             // 如果找不到位置，使用默認位置
@@ -684,9 +554,9 @@ public partial class MainGame : Node2D
 
             // 設置目標位置（棄牌堆位置）
             Vector2 targetPos = Vector2.Zero;
-            if (discardPileUI != null)
+            if (uiManager?.DiscardPileUI != null)
             {
-                targetPos = discardPileUI.GlobalPosition;
+                targetPos = uiManager.DiscardPileUI.GlobalPosition;
             }
             else
             {
@@ -779,9 +649,13 @@ public partial class MainGame : Node2D
         UpdateDiscardPileDisplay();
 
         // 禁用出牌按鈕
-        if (playCardButton != null)
+        if (uiManager != null)
         {
-            playCardButton.Disabled = true;
+            uiManager.SetButtonStates(true, false, true);
+        }
+        else
+        {
+            GD.PrintErr("UIManager 引用為空");
         }
 
         // 檢查是否是萬能牌，如果是則顯示顏色選擇面板
@@ -802,7 +676,14 @@ public partial class MainGame : Node2D
         if (gameStateManager.IsGameOver())
         {
             GD.Print("遊戲結束！");
-            AddMessage("遊戲結束！");
+            if (uiManager != null)
+            {
+                uiManager.AddMessage("遊戲結束！");
+            }
+            else
+            {
+                GD.PrintErr("UIManager 引用為空");
+            }
             // 這裡可以添加遊戲結束的處理邏輯
         }
 
@@ -812,27 +693,13 @@ public partial class MainGame : Node2D
 
     private void UpdateDiscardPileDisplay()
     {
-        if (discardPileUI != null && gameStateManager.CurrentTopCard != null)
+        if (uiManager != null)
         {
-            // 清除現有的子節點
-            foreach (Node child in discardPileUI.GetChildren())
-            {
-                child.QueueFree();
-            }
-
-            // 創建頂牌實例
-            var cardScene = ResourceLoader.Load<PackedScene>("res://scenes/card.tscn");
-            if (cardScene != null)
-            {
-                var topCardInstance = cardScene.Instantiate<Card>();
-                topCardInstance.SetCard(gameStateManager.CurrentTopCard.Color, gameStateManager.CurrentTopCard.CardValue, gameStateManager.CurrentTopCard.Type);
-                topCardInstance.SetCardFront();
-
-                // 將頂牌添加到UI
-                discardPileUI.AddChild(topCardInstance);
-
-                GD.Print($"更新頂牌顯示: {gameStateManager.CurrentTopCard.Color} {gameStateManager.CurrentTopCard.CardValue}");
-            }
+            uiManager.UpdateDiscardPileDisplay(gameStateManager.CurrentTopCard);
+        }
+        else
+        {
+            GD.PrintErr("UIManager 引用為空，無法更新棄牌堆顯示");
         }
     }
 
@@ -856,21 +723,13 @@ public partial class MainGame : Node2D
         gameStateManager.SetGamePhase(GamePhase.ColorSelection);
         gameStateManager.IsWaitingForColorSelection = true;
         
-        if (colorSelectionPanel != null)
+        if (uiManager != null)
         {
-            colorSelectionPanel.Visible = true;
-            // 禁用其他按鈕，強制玩家選擇顏色
-            if (drawCardButton != null) drawCardButton.Disabled = true;
-            if (playCardButton != null) playCardButton.Disabled = true;
-            if (unoButton != null) unoButton.Disabled = true;
-
-            // 添加提示信息
-            var colorTitle = GetNode<Label>("UILayer/UI/ColorSelectionPanel/ColorTitle");
-            if (colorTitle != null)
-            {
-                colorTitle.Text = "請選擇下一個顏色:";
-                colorTitle.Modulate = new Color(1, 1, 1, 1); // 確保可見
-            }
+            uiManager.ShowColorSelectionPanel();
+        }
+        else
+        {
+            GD.PrintErr("UIManager 引用為空");
         }
     }
 
@@ -879,11 +738,13 @@ public partial class MainGame : Node2D
         GD.Print($"選擇顏色: {color}");
 
         // 顯示選擇確認
-        var colorTitle = GetNode<Label>("UILayer/UI/ColorSelectionPanel/ColorTitle");
-        if (colorTitle != null)
+        if (uiManager != null)
         {
-            colorTitle.Text = $"已選擇: {color}";
-            colorTitle.Modulate = new Color(0, 1, 0, 1); // 綠色表示確認
+            uiManager.SetColorSelectionConfirmed(color);
+        }
+        else
+        {
+            GD.PrintErr("UIManager 引用為空");
         }
 
         // 延遲一下再隱藏面板，讓玩家看到選擇確認
@@ -895,10 +756,7 @@ public partial class MainGame : Node2D
             gameStateManager.SetGamePhase(GamePhase.Playing);
             
             // 隱藏顏色選擇面板
-            if (colorSelectionPanel != null)
-            {
-                colorSelectionPanel.Visible = false;
-            }
+            uiManager.HideColorSelectionPanel();
 
             // 注意：按鈕狀態會在 NextPlayer() 方法中正確設置
             // 這裡不需要重新啟用按鈕，因為 NextPlayer() 會根據當前玩家設置正確的按鈕狀態
@@ -961,16 +819,10 @@ public partial class MainGame : Node2D
         StartInitialDealAnimation();
 
         // 初始化按鈕狀態
-        if (playCardButton != null)
-        {
-            playCardButton.Disabled = true; // 初始時禁用出牌按鈕
-        }
+        uiManager.SetButtonStates(false, false, false); // 初始時禁用所有按鈕
 
         // 隱藏顏色選擇面板
-        if (colorSelectionPanel != null)
-        {
-            colorSelectionPanel.Visible = false;
-        }
+        uiManager.HideColorSelectionPanel();
 
         // 隨機選擇第一個玩家（0-3，其中0是人類玩家）
         var random = new Random();
@@ -986,41 +838,13 @@ public partial class MainGame : Node2D
         if (gameStateManager.CurrentPlayerIndex == 0)
         {
             // 如果是人類玩家，啟用按鈕
-            if (drawCardButton != null) 
-            {
-                drawCardButton.Disabled = false;
-                GD.Print($"初始化：抽牌按鈕狀態設置為 {drawCardButton.Disabled}");
-            }
-            if (playCardButton != null) 
-            {
-                playCardButton.Disabled = true; // 需要選擇牌
-                GD.Print($"初始化：出牌按鈕狀態設置為 {playCardButton.Disabled}");
-            }
-            if (unoButton != null) 
-            {
-                unoButton.Disabled = false;
-                GD.Print($"初始化：UNO按鈕狀態設置為 {unoButton.Disabled}");
-            }
+            uiManager.SetButtonStates(true, false, true); // 啟用抽牌和UNO按鈕，禁用出牌按鈕
             GD.Print("初始化：啟用人類玩家按鈕");
         }
         else
         {
             // 如果是電腦玩家，禁用按鈕
-            if (drawCardButton != null) 
-            {
-                drawCardButton.Disabled = true;
-                GD.Print($"初始化：抽牌按鈕狀態設置為 {drawCardButton.Disabled}");
-            }
-            if (playCardButton != null) 
-            {
-                playCardButton.Disabled = true;
-                GD.Print($"初始化：出牌按鈕狀態設置為 {playCardButton.Disabled}");
-            }
-            if (unoButton != null) 
-            {
-                unoButton.Disabled = true;
-                GD.Print($"初始化：UNO按鈕狀態設置為 {unoButton.Disabled}");
-            }
+            uiManager.SetButtonStates(false, false, false);
             GD.Print("初始化：禁用按鈕（電腦玩家回合）");
         }
     }
@@ -1045,29 +869,11 @@ public partial class MainGame : Node2D
 
     private void UpdateGameStatusDisplay()
     {
-        // 更新當前玩家顯示
-        if (currentPlayerLabel != null)
-        {
-            string currentPlayerName = GetCurrentPlayerName();
-            currentPlayerLabel.Text = $"當前玩家: {currentPlayerName}";
-            GD.Print($"更新當前玩家顯示: {currentPlayerName}");
-        }
-
-        // 更新當前顏色顯示
-        if (currentColorLabel != null && gameStateManager.CurrentTopCard != null)
-        {
-            string colorText = GetColorText(gameStateManager.CurrentTopCard.Color);
-            currentColorLabel.Text = $"當前顏色: {colorText}";
-            GD.Print($"更新當前顏色顯示: {colorText}");
-        }
-
-        // 更新所有玩家手牌數量顯示
-        if (cardsLeftLabel != null)
-        {
-            string allPlayersCardsInfo = GetAllPlayersCardsInfo();
-            cardsLeftLabel.Text = allPlayersCardsInfo;
-            GD.Print($"更新所有玩家手牌信息: {allPlayersCardsInfo}");
-        }
+        string currentPlayerName = GetCurrentPlayerName();
+        string colorText = gameStateManager.CurrentTopCard != null ? GetColorText(gameStateManager.CurrentTopCard.Color) : "無";
+        string allPlayersCardsInfo = GetAllPlayersCardsInfo();
+        
+        uiManager.UpdateGameStatusDisplay(currentPlayerName, colorText, allPlayersCardsInfo);
     }
 
     private string GetCurrentPlayerName()
@@ -1094,21 +900,8 @@ public partial class MainGame : Node2D
             GD.Print($"開始執行電腦玩家回合，currentPlayerIndex: {gameStateManager.CurrentPlayerIndex}");
             GD.Print("禁用人類玩家按鈕");
             // 禁用人類玩家的按鈕
-            if (drawCardButton != null)
-            {
-                drawCardButton.Disabled = true;
-                GD.Print("抽牌按鈕已禁用");
-            }
-            if (playCardButton != null)
-            {
-                playCardButton.Disabled = true;
-                GD.Print("出牌按鈕已禁用");
-            }
-            if (unoButton != null)
-            {
-                unoButton.Disabled = true;
-                GD.Print("UNO按鈕已禁用");
-            }
+            uiManager.SetButtonStates(false, false, false);
+            GD.Print("人類玩家按鈕已禁用");
 
             ExecuteComputerPlayerTurn();
         }
@@ -1117,21 +910,8 @@ public partial class MainGame : Node2D
             GD.Print("輪換到人類玩家回合");
             GD.Print("啟用人類玩家按鈕");
             // 啟用人類玩家的按鈕
-            if (drawCardButton != null)
-            {
-                drawCardButton.Disabled = false;
-                GD.Print($"NextPlayer：抽牌按鈕狀態設置為 {drawCardButton.Disabled}");
-            }
-            if (playCardButton != null)
-            {
-                playCardButton.Disabled = true; // 出牌按鈕需要選擇牌後才啟用
-                GD.Print($"NextPlayer：出牌按鈕狀態設置為 {playCardButton.Disabled}");
-            }
-            if (unoButton != null)
-            {
-                unoButton.Disabled = false;
-                GD.Print($"NextPlayer：UNO按鈕狀態設置為 {unoButton.Disabled}");
-            }
+            uiManager.SetButtonStates(true, false, true); // 啟用抽牌和UNO按鈕，禁用出牌按鈕
+            GD.Print("人類玩家按鈕已啟用");
         }
     }
 
@@ -1154,7 +934,7 @@ public partial class MainGame : Node2D
         {
             var computerPlayer = gameStateManager.ComputerPlayers[computerPlayerIndex];
             GD.Print($"電腦玩家 {computerPlayer.PlayerName} 的回合開始");
-            AddMessage($"{computerPlayer.PlayerName} 的回合開始");
+            uiManager.AddMessage($"{computerPlayer.PlayerName} 的回合開始");
             GD.Print($"電腦玩家手牌數量: {computerPlayer.Hand.Count}");
             GD.Print($"當前頂牌: {gameStateManager.CurrentTopCard?.Color} {gameStateManager.CurrentTopCard?.CardValue}");
 
@@ -1164,7 +944,7 @@ public partial class MainGame : Node2D
             if (cardToPlay != null)
             {
                 GD.Print($"電腦玩家 {computerPlayer.PlayerName} 打出: {cardToPlay.Color} {cardToPlay.CardValue}");
-                AddMessage($"{computerPlayer.PlayerName} 打出: {GetColorText(cardToPlay.Color)} {cardToPlay.CardValue}");
+                uiManager.AddMessage($"{computerPlayer.PlayerName} 打出: {GetColorText(cardToPlay.Color)} {cardToPlay.CardValue}");
 
                 // 使用GameStateManager的PlayCard方法
                 gameStateManager.PlayCard(cardToPlay, gameStateManager.CurrentPlayerIndex);
@@ -1177,12 +957,12 @@ public partial class MainGame : Node2D
                 if (cardToPlay.Type == CardType.Wild || cardToPlay.Type == CardType.WildDrawFour)
                 {
                     GD.Print($"電腦玩家 {computerPlayer.PlayerName} 打出萬能牌，自動選擇顏色");
-                    AddMessage($"{computerPlayer.PlayerName} 打出萬能牌，自動選擇顏色");
+                    uiManager.AddMessage($"{computerPlayer.PlayerName} 打出萬能牌，自動選擇顏色");
 
                     // 電腦玩家自動選擇顏色
                     CardColor chosenColor = computerPlayer.ChooseColor();
                     GD.Print($"電腦玩家選擇顏色: {chosenColor}");
-                    AddMessage($"{computerPlayer.PlayerName} 選擇顏色: {GetColorText(chosenColor)}");
+                    uiManager.AddMessage($"{computerPlayer.PlayerName} 選擇顏色: {GetColorText(chosenColor)}");
 
                     // 更新當前頂牌的顏色
                     gameStateManager.CurrentTopCard.Color = chosenColor;
@@ -1201,7 +981,7 @@ public partial class MainGame : Node2D
                     if (cardToPlay.Type == CardType.Number)
                     {
                         GD.Print("電腦玩家出普通牌，輪換到下一個玩家");
-                        AddMessage($"{computerPlayer.PlayerName} 出普通牌，輪換到下一個玩家");
+                        uiManager.AddMessage($"{computerPlayer.PlayerName} 出普通牌，輪換到下一個玩家");
                         NextPlayer();
                     }
                 }
@@ -1209,13 +989,13 @@ public partial class MainGame : Node2D
             else
             {
                 GD.Print($"電腦玩家 {computerPlayer.PlayerName} 沒有可以打出的牌，抽一張牌");
-                AddMessage($"{computerPlayer.PlayerName} 沒有可以打出的牌，抽一張牌");
+                uiManager.AddMessage($"{computerPlayer.PlayerName} 沒有可以打出的牌，抽一張牌");
 
                 // 檢查抽牌堆是否為空，如果為空則重新洗牌
                 if (gameStateManager.DrawPile.Count == 0)
                 {
                     GD.Print("抽牌堆已空，重新洗牌");
-                    AddMessage("抽牌堆已空，重新洗牌");
+                    uiManager.AddMessage("抽牌堆已空，重新洗牌");
                     
                     // 將棄牌堆的牌（除了頂牌）重新洗牌
                     if (gameStateManager.DiscardPile.Count > 1)
@@ -1241,7 +1021,7 @@ public partial class MainGame : Node2D
                         gameStateManager.DiscardPile.Add(gameStateManager.CurrentTopCard);
                         
                         GD.Print($"重新洗牌完成，抽牌堆: {gameStateManager.DrawPile.Count}張");
-                        AddMessage($"重新洗牌完成，抽牌堆: {gameStateManager.DrawPile.Count}張");
+                        uiManager.AddMessage($"重新洗牌完成，抽牌堆: {gameStateManager.DrawPile.Count}張");
                     }
                 }
 
@@ -1254,13 +1034,13 @@ public partial class MainGame : Node2D
                     if (drawnCard != null)
                     {
                         GD.Print($"電腦玩家 {computerPlayer.PlayerName} 抽到: {drawnCard.Color} {drawnCard.CardValue}");
-                        AddMessage($"{computerPlayer.PlayerName} 抽到: {GetColorText(drawnCard.Color)} {drawnCard.CardValue}");
+                        uiManager.AddMessage($"{computerPlayer.PlayerName} 抽到: {GetColorText(drawnCard.Color)} {drawnCard.CardValue}");
                     }
                 }
                 else
                 {
                     GD.Print("抽牌堆仍然為空，無法抽牌");
-                    AddMessage("抽牌堆仍然為空，無法抽牌");
+                    uiManager.AddMessage("抽牌堆仍然為空，無法抽牌");
                 }
 
                 // 輪換到下一個玩家
@@ -1270,7 +1050,7 @@ public partial class MainGame : Node2D
         else
         {
             GD.PrintErr($"電腦玩家索引超出範圍: {computerPlayerIndex}, 電腦玩家數量: {gameStateManager.ComputerPlayers.Count}");
-            AddMessage($"錯誤：電腦玩家索引超出範圍");
+            uiManager.AddMessage($"錯誤：電腦玩家索引超出範圍");
             // 如果索引超出範圍，輪換到人類玩家
             gameStateManager.CurrentPlayerIndex = 0;
             NextPlayer();
@@ -1286,19 +1066,19 @@ public partial class MainGame : Node2D
         switch (card.Type)
         {
             case CardType.Skip:
-                AddMessage("跳過下一個玩家的回合");
+                uiManager.AddMessage("跳過下一個玩家的回合");
                 break;
             case CardType.Reverse:
-                AddMessage("遊戲方向改變");
+                uiManager.AddMessage("遊戲方向改變");
                 break;
             case CardType.DrawTwo:
-                AddMessage("下一個玩家抽兩張牌");
+                uiManager.AddMessage("下一個玩家抽兩張牌");
                 break;
             case CardType.Wild:
-                AddMessage("萬能牌，輪換到下一個玩家");
+                uiManager.AddMessage("萬能牌，輪換到下一個玩家");
                 break;
             case CardType.WildDrawFour:
-                AddMessage("下一個玩家抽四張牌");
+                uiManager.AddMessage("下一個玩家抽四張牌");
                 break;
         }
     }
@@ -1311,7 +1091,7 @@ public partial class MainGame : Node2D
         // 添加訊息到UI
         if (gameStateManager.CurrentPlayerIndex == 0)
         {
-            AddMessage("你抽了兩張牌");
+            uiManager.AddMessage("你抽了兩張牌");
         }
         else
         {
@@ -1319,7 +1099,7 @@ public partial class MainGame : Node2D
             if (computerPlayerIndex < gameStateManager.ComputerPlayers.Count)
             {
                 var computerPlayer = gameStateManager.ComputerPlayers[computerPlayerIndex];
-                AddMessage($"{computerPlayer.PlayerName} 抽了兩張牌");
+                uiManager.AddMessage($"{computerPlayer.PlayerName} 抽了兩張牌");
             }
         }
         
@@ -1336,7 +1116,7 @@ public partial class MainGame : Node2D
         // 添加訊息到UI
         if (gameStateManager.CurrentPlayerIndex == 0)
         {
-            AddMessage("你抽了四張牌");
+            uiManager.AddMessage("你抽了四張牌");
         }
         else
         {
@@ -1344,7 +1124,7 @@ public partial class MainGame : Node2D
             if (computerPlayerIndex < gameStateManager.ComputerPlayers.Count)
             {
                 var computerPlayer = gameStateManager.ComputerPlayers[computerPlayerIndex];
-                AddMessage($"{computerPlayer.PlayerName} 抽了四張牌");
+                uiManager.AddMessage($"{computerPlayer.PlayerName} 抽了四張牌");
             }
         }
         
@@ -1363,51 +1143,31 @@ public partial class MainGame : Node2D
         return gameStateManager.GetColorText(color);
     }
 
-    // 添加訊息到訊息框
-    private void AddMessage(string message)
+    // 安全地調用UIManager方法的輔助方法
+    private void SafeUIManagerCall(Action<UIManager> action, string operationName)
     {
-        if (messageContainer != null)
+        if (uiManager != null)
         {
-            var messageLabel = new Label();
-            messageLabel.Text = $"[{DateTime.Now:HH:mm:ss}] {message}";
-            messageLabel.AddThemeColorOverride("font_color", new Color(1, 1, 1, 1));
-            messageLabel.AddThemeConstantOverride("font_size", 14);
-            messageLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
-
-            messageContainer.AddChild(messageLabel);
-
-            // 限制訊息數量，最多保留20條
-            if (messageContainer.GetChildCount() > 20)
+            try
             {
-                var firstChild = messageContainer.GetChild(0);
-                if (firstChild != null)
-                {
-                    firstChild.QueueFree();
-                }
+                action(uiManager);
             }
-
-            // 確保容器有正確的最小高度
-            messageContainer.CustomMinimumSize = new Vector2(0, 0);
-
-            // 使用 FollowFocus 配合溫和的滾動
-            CallDeferred(nameof(ForceScrollToBottom));
-
-            GD.Print($"添加訊息: {message}");
+            catch (Exception ex)
+            {
+                GD.PrintErr($"UIManager {operationName} 調用失敗: {ex.Message}");
+            }
         }
-    }
-
-
-
-    // 簡單的滾動到底部方法
-    private async void ForceScrollToBottom()
-    {
-        if (messageScrollContainer != null && messageContainer != null)
+        else
         {
-            await ToSignal(GetTree(), "process_frame");
-            var vScroll = messageScrollContainer.GetVScrollBar();
-            messageScrollContainer.ScrollVertical = (int)vScroll.MaxValue;
+            GD.PrintErr($"UIManager 引用為空，無法執行 {operationName}");
         }
     }
+
+
+
+
+
+
 
 
     private void StartInitialDealAnimation()
@@ -1498,15 +1258,32 @@ public partial class MainGame : Node2D
         gameStateManager.DrawPile.RemoveAt(0);
 
         // 計算起始位置（從抽牌堆位置開始）
-        Vector2 startPos = drawPileUI.GlobalPosition + drawPileUI.Size / 2;
+        Vector2 startPos = Vector2.Zero;
+        if (uiManager?.DrawPileUI != null)
+        {
+            startPos = uiManager.DrawPileUI.GlobalPosition + uiManager.DrawPileUI.Size / 2;
+        }
+        else
+        {
+            GD.PrintErr("DrawPileUI 引用為空");
+            return;
+        }
 
         // 計算目標位置（玩家手牌區域的特定位置）
-        Vector2 targetPos;
-        float cardWidth = 80.0f;
-        float cardSpacing = 10.0f;
-        float startX = playerHandUI.GlobalPosition.X + cardWidth / 2;
-        float targetX = startX + (cardIndex * (cardWidth + cardSpacing));
-        targetPos = new Vector2(targetX, playerHandUI.GlobalPosition.Y + playerHandUI.Size.Y / 2);
+        Vector2 targetPos = Vector2.Zero;
+        if (uiManager?.PlayerHandUI != null)
+        {
+            float cardWidth = 80.0f;
+            float cardSpacing = 10.0f;
+            float startX = uiManager.PlayerHandUI.GlobalPosition.X + cardWidth / 2;
+            float targetX = startX + (cardIndex * (cardWidth + cardSpacing));
+            targetPos = new Vector2(targetX, uiManager.PlayerHandUI.GlobalPosition.Y + uiManager.PlayerHandUI.Size.Y / 2);
+        }
+        else
+        {
+            GD.PrintErr("PlayerHandUI 引用為空");
+            return;
+        }
 
         // 如果目標位置計算有問題，使用固定位置
         if (targetPos.X == 0 || targetPos.Y == 0)
@@ -1553,44 +1330,8 @@ public partial class MainGame : Node2D
 
     private void ShowDrawPileBack()
     {
-        if (drawPileUI != null && gameStateManager.DrawPile.Count > 0)
-        {
-            // 創建堆疊卡牌效果
-            CreateDrawPileStack();
-            GD.Print("抽牌堆堆疊效果已創建");
-        }
-    }
-
-    private void CreateDrawPileStack()
-    {
-        // 清除現有的子節點
-        foreach (Node child in drawPileUI.GetChildren())
-        {
-            child.QueueFree();
-        }
-
-        // 創建多張卡牌來形成堆疊效果
-        int stackCount = Math.Min(5, gameStateManager.DrawPile.Count); // 最多顯示5張
-
-        for (int i = 0; i < stackCount; i++)
-        {
-            // 載入卡片場景並實例化
-            var cardScene = ResourceLoader.Load<PackedScene>("res://scenes/card.tscn");
-            if (cardScene != null)
-            {
-                var cardInstance = cardScene.Instantiate<Card>();
-
-                // 將卡牌添加到UI（在設置背面之前）
-                drawPileUI.AddChild(cardInstance);
-
-                // 設置位置，形成堆疊效果
-                cardInstance.Position = new Vector2(i * 2, i * 2); // 每張卡牌稍微偏移
-                cardInstance.ZIndex = i; // 設置層級，後面的卡牌在上層
-
-                // 所有卡牌都設置為背面（在添加到UI之後）
-                cardInstance.SetCardBack();
-            }
-        }
+        uiManager.UpdateDrawPileDisplay(gameStateManager.DrawPile.Count);
+        GD.Print("抽牌堆堆疊效果已創建");
     }
 
     private void CreateDeck()
@@ -1702,10 +1443,10 @@ public partial class MainGame : Node2D
             gameStateManager.DiscardPile.Add(firstCard);
 
             // 顯示頂牌
-            if (discardPileUI != null)
+            if (uiManager.DiscardPileUI != null)
             {
                 // 清除現有的子節點
-                foreach (Node child in discardPileUI.GetChildren())
+                foreach (Node child in uiManager.DiscardPileUI.GetChildren())
                 {
                     child.QueueFree();
                 }
@@ -1719,7 +1460,7 @@ public partial class MainGame : Node2D
                     topCardInstance.SetCardFront(); // 確保顯示正面
 
                     // 將頂牌添加到UI
-                    discardPileUI.AddChild(topCardInstance);
+                    uiManager.DiscardPileUI.AddChild(topCardInstance);
 
                     // 為頂牌添加邊框效果
                     var topCardBorder = new ColorRect();
@@ -1737,7 +1478,7 @@ public partial class MainGame : Node2D
                     topCardBorderStyle.CornerRadiusBottomRight = 12;
                     topCardBorder.AddThemeStyleboxOverride("panel", topCardBorderStyle);
 
-                    discardPileUI.AddChild(topCardBorder);
+                    uiManager.DiscardPileUI.AddChild(topCardBorder);
                 }
             }
 
