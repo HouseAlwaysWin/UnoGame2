@@ -281,6 +281,8 @@ public partial class UIManager : Node
             }
         }
         
+        GD.Print($"清除現有手牌顯示，開始添加新手牌");
+        
         // 顯示玩家手牌
         for (int i = 0; i < playerHand.Count; i++)
         {
@@ -312,11 +314,15 @@ public partial class UIManager : Node
                     playerHandUI.AddChild(cardInstance);
                 }
                 
-                GD.Print($"添加了手牌: {card.Color} {card.CardValue}");
+                GD.Print($"添加了手牌 {i + 1}: {card.Color} {card.CardValue}");
+            }
+            else
+            {
+                GD.PrintErr($"無法載入卡片場景，索引: {i}");
             }
         }
         
-        GD.Print($"玩家手牌顯示更新完成，總共 {playerHand.Count} 張牌");
+        GD.Print($"玩家手牌顯示更新完成，總共 {playerHand.Count} 張牌，UI子節點數量: {playerHandUI.GetChildCount()}");
     }
     
     // 抽牌堆顯示管理

@@ -15,22 +15,14 @@ public partial class CardAnimationManager : Node
         int cardIndex,
         Action onAnimationComplete)
     {
-        if (isAnimating)
-        {
-            GD.Print("動畫正在進行中，跳過此次動畫");
-            onAnimationComplete?.Invoke();
-            return;
-        }
-        
+        // 對於發牌動畫，允許並行執行，因為它們是初始發牌過程的一部分
         GD.Print($"開始發牌動畫: 第 {cardIndex + 1} 張牌");
-        isAnimating = true;
         
         // 創建動畫卡牌實例
         var cardScene = ResourceLoader.Load<PackedScene>("res://scenes/card.tscn");
         if (cardScene == null)
         {
             GD.PrintErr("無法載入卡片場景");
-            isAnimating = false;
             onAnimationComplete?.Invoke();
             return;
         }
@@ -94,9 +86,6 @@ public partial class CardAnimationManager : Node
             {
                 animatedCard.QueueFree();
             }
-            
-            // 重置動畫狀態
-            isAnimating = false;
             
             // 調用完成回調
             onAnimationComplete?.Invoke();

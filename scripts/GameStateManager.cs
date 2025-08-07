@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Godot;
+using System;
 
 public enum GamePhase
 {
@@ -461,33 +462,186 @@ public partial class GameStateManager : Node
     // 新增方法：抽牌
     public Card DrawCard(int playerIndex)
     {
-        if (DrawPile.Count == 0) return null;
+        if (DrawPile.Count == 0)
+        {
+            GD.Print("抽牌堆已空，無法抽牌");
+            return null;
+        }
 
-        var card = DrawPile[0];
+        var cardToDraw = DrawPile[0];
         DrawPile.RemoveAt(0);
 
-        // 將牌添加到玩家手牌
         if (playerIndex == 0)
         {
-            PlayerHand.Add(card);
+            PlayerHand.Add(cardToDraw);
+            EmitCardDrawn(cardToDraw, playerIndex);
         }
         else
         {
             int computerPlayerIndex = playerIndex - 1;
             if (computerPlayerIndex < ComputerPlayers.Count)
             {
-                ComputerPlayers[computerPlayerIndex].Hand.Add(card);
+                ComputerPlayers[computerPlayerIndex].Hand.Add(cardToDraw);
+                EmitCardDrawn(cardToDraw, playerIndex);
             }
         }
 
-        // 更新統計數據
-        TotalCardsDrawn++;
-        UpdatePlayerCardCounts();
+        return cardToDraw;
+    }
 
-        // 觸發抽牌事件
-        EmitCardDrawn(card, playerIndex);
-        EmitGameStateChanged();
+    public void ReshuffleDiscardPile()
+    {
+        GD.Print("重新洗牌棄牌堆");
+        
+        if (DiscardPile.Count > 1)
+        {
+            var cardsToShuffle = new List<Card>(DiscardPile);
+            cardsToShuffle.RemoveAt(cardsToShuffle.Count - 1); // 移除頂牌
+            
+            // 重新洗牌
+            var random = new Random();
+            for (int i = cardsToShuffle.Count - 1; i > 0; i--)
+            {
+                int j = random.Next(i + 1);
+                var temp = cardsToShuffle[i];
+                cardsToShuffle[i] = cardsToShuffle[j];
+                cardsToShuffle[j] = temp;
+            }
+            
+            // 將洗好的牌放回抽牌堆
+            DrawPile.AddRange(cardsToShuffle);
+            
+            // 清空棄牌堆（除了頂牌）
+            DiscardPile.Clear();
+            DiscardPile.Add(CurrentTopCard);
+            
+            GD.Print($"重新洗牌完成，抽牌堆: {DrawPile.Count}張");
+        }
+    }
 
-        return card;
+    public void CreateComputerPlayers()
+    {
+        GD.Print($"創建電腦玩家... 總人數: {PlayerCount}人");
+
+        // 清空現有電腦玩家
+        ComputerPlayers.Clear();
+
+        // 創建電腦玩家（總人數減去1個人類玩家）
+        for (int i = 1; i < PlayerCount; i++)
+        {
+            var computerPlayer = new ComputerPlayer(i);
+            ComputerPlayers.Add(computerPlayer);
+            GD.Print($"創建電腦玩家: {computerPlayer.PlayerName}");
+        }
+
+        GD.Print($"電腦玩家創建完成，共 {ComputerPlayers.Count} 個電腦玩家");
+    }
+
+    public void CreateDeck()
+    {
+        GD.Print("創建UNO牌組...");
+
+        // 創建數字牌 (0-9, 每種顏色各2張，除了0只有1張)
+        string[] colors = { "red", "blue", "green", "yellow" };
+
+        foreach (string color in colors)
+        {
+            GD.Print($"創建 {color} 顏色的牌...");
+
+            // 數字0 (每種顏色1張)
+            CreateCard(GetCardColorFromString(color), "0", CardType.Number);
+
+            // 數字1-9 (每種顏色2張)
+            for (int i = 1; i <= 9; i++)
+            {
+                CreateCard(GetCardColorFromString(color), i.ToString(), CardType.Number);
+                CreateCard(GetCardColorFromString(color), i.ToString(), CardType.Number);
+            }
+
+            // 特殊牌 (每種顏色2張)
+            CreateCard(GetCardColorFromString(color), "", CardType.Skip);
+            CreateCard(GetCardColorFromString(color), "", CardType.Skip);
+            CreateCard(GetCardColorFromString(color), "", CardType.Reverse);
+            CreateCard(GetCardColorFromString(color), "", CardType.Reverse);
+            CreateCard(GetCardColorFromString(color), "", CardType.DrawTwo);
+            CreateCard(GetCardColorFromString(color), "", CardType.DrawTwo);
+
+            GD.Print($"{color} 顏色牌創建完成，當前牌組: {DrawPile.Count} 張");
+        }
+
+        // 萬能牌 (4張)
+        GD.Print("創建萬能牌...");
+        for (int i = 0; i < 4; i++)
+        {
+            CreateCard(CardColor.Red, "", CardType.Wild);
+        }
+
+        // 萬能牌+4 (4張)
+        GD.Print("創建萬能牌+4...");
+        for (int i = 0; i < 4; i++)
+        {
+            CreateCard(CardColor.Red, "", CardType.WildDrawFour);
+        }
+
+        GD.Print($"牌組創建完成，共 {DrawPile.Count} 張牌");
+    }
+
+    private void CreateCard(CardColor color, string value, CardType type)
+    {
+        // 載入卡片場景
+        var cardScene = ResourceLoader.Load<PackedScene>("res://scenes/card.tscn");
+        if (cardScene != null)
+        {
+            var cardInstance = cardScene.Instantiate<Card>();
+            cardInstance.SetCard(color, value, type);
+            DrawPile.Add(cardInstance);
+        }
+        else
+        {
+            GD.PrintErr("無法載入卡片場景: res://scenes/card.tscn");
+        }
+    }
+
+    public void ShuffleDeck()
+    {
+        GD.Print("洗牌中...");
+        var random = new Random();
+
+        // Fisher-Yates 洗牌算法
+        for (int i = DrawPile.Count - 1; i > 0; i--)
+        {
+            int j = random.Next(i + 1);
+            (DrawPile[i], DrawPile[j]) = (DrawPile[j], DrawPile[i]);
+        }
+
+        GD.Print("洗牌完成");
+    }
+
+    public void SetFirstTopCard()
+    {
+        GD.Print("設置第一張頂牌...");
+
+        // 找到第一張非萬能牌的牌作為頂牌
+        Card firstCard = null;
+        for (int i = 0; i < DrawPile.Count; i++)
+        {
+            if (DrawPile[i].Type != CardType.Wild && DrawPile[i].Type != CardType.WildDrawFour)
+            {
+                firstCard = DrawPile[i];
+                DrawPile.RemoveAt(i);
+                break;
+            }
+        }
+
+        if (firstCard != null)
+        {
+            CurrentTopCard = firstCard;
+            DiscardPile.Add(firstCard);
+            GD.Print($"頂牌設置為: {firstCard.Color} {firstCard.CardValue}");
+        }
+        else
+        {
+            GD.Print("警告: 沒有找到合適的頂牌");
+        }
     }
 }
