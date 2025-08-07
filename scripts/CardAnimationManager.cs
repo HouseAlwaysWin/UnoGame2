@@ -49,24 +49,24 @@ public partial class CardAnimationManager : Node
         var dealTween = CreateTween();
         dealTween.SetParallel(true);
         
-        // 位置動畫
-        float animationDuration = 0.8f;
+        // 位置動畫 - 加快速度
+        float animationDuration = 0.4f; // 從 0.8f 減少到 0.4f
         dealTween.TweenProperty(animatedCard, "global_position", targetPos, animationDuration)
             .SetTrans(Tween.TransitionType.Sine)
             .SetEase(Tween.EaseType.Out);
         
         GD.Print($"開始發牌動畫: 從 {startPos} 到 {targetPos}, 持續時間: {animationDuration}秒");
         
-        // 旋轉動畫（翻牌效果）
-        dealTween.TweenProperty(animatedCard, "rotation", Mathf.Pi, 0.4f)
-            .SetDelay(0.2f)
+        // 旋轉動畫（翻牌效果） - 加快速度
+        dealTween.TweenProperty(animatedCard, "rotation", Mathf.Pi, 0.2f) // 從 0.4f 減少到 0.2f
+            .SetDelay(0.1f) // 從 0.2f 減少到 0.1f
             .SetEase(Tween.EaseType.InOut);
         
-        // 縮放動畫（彈跳效果）
-        dealTween.TweenProperty(animatedCard, "scale", Vector2.One * 1.2f, 0.3f)
+        // 縮放動畫（彈跳效果） - 加快速度
+        dealTween.TweenProperty(animatedCard, "scale", Vector2.One * 1.2f, 0.15f) // 從 0.3f 減少到 0.15f
             .SetEase(Tween.EaseType.Out);
-        dealTween.TweenProperty(animatedCard, "scale", Vector2.One, 0.3f)
-            .SetDelay(0.3f)
+        dealTween.TweenProperty(animatedCard, "scale", Vector2.One, 0.15f) // 從 0.3f 減少到 0.15f
+            .SetDelay(0.15f) // 從 0.3f 減少到 0.15f
             .SetEase(Tween.EaseType.In);
         
         // 在翻牌時顯示正面
@@ -74,7 +74,7 @@ public partial class CardAnimationManager : Node
         {
             animatedCard.SetCardFront();
             GD.Print($"第 {cardIndex + 1} 張卡牌翻轉到正面");
-        })).SetDelay(0.4f);
+        })).SetDelay(0.2f); // 從 0.4f 減少到 0.2f
         
         // 動畫完成後的回調
         dealTween.TweenCallback(Callable.From(() =>
@@ -129,25 +129,25 @@ public partial class CardAnimationManager : Node
         var drawTween = CreateTween();
         drawTween.SetParallel(true);
         
-        // 位置動畫
-        float animationDuration = 1.0f;
+        // 位置動畫 - 加快速度
+        float animationDuration = 0.5f; // 從 1.0f 減少到 0.5f
         drawTween.TweenProperty(animatedCard, "global_position", targetPos, animationDuration)
             .SetTrans(Tween.TransitionType.Sine)
             .SetEase(Tween.EaseType.Out);
         
-        // 旋轉動畫（翻牌效果）
-        drawTween.TweenProperty(animatedCard, "rotation", Mathf.Pi, 0.5f)
-            .SetDelay(0.3f)
+        // 旋轉動畫（翻牌效果） - 加快速度
+        drawTween.TweenProperty(animatedCard, "rotation", Mathf.Pi, 0.25f) // 從 0.5f 減少到 0.25f
+            .SetDelay(0.15f) // 從 0.3f 減少到 0.15f
             .SetEase(Tween.EaseType.InOut);
         
-        // 縮放動畫（彈跳效果）
-        drawTween.TweenProperty(animatedCard, "scale", Vector2.One * 1.3f, 0.3f)
+        // 縮放動畫（彈跳效果） - 加快速度
+        drawTween.TweenProperty(animatedCard, "scale", Vector2.One * 1.3f, 0.15f) // 從 0.3f 減少到 0.15f
             .SetEase(Tween.EaseType.Out);
-        drawTween.TweenProperty(animatedCard, "scale", Vector2.One * 0.9f, 0.2f)
-            .SetDelay(0.3f)
+        drawTween.TweenProperty(animatedCard, "scale", Vector2.One * 0.9f, 0.1f) // 從 0.2f 減少到 0.1f
+            .SetDelay(0.15f) // 從 0.3f 減少到 0.15f
             .SetEase(Tween.EaseType.In);
-        drawTween.TweenProperty(animatedCard, "scale", Vector2.One, 0.2f)
-            .SetDelay(0.5f)
+        drawTween.TweenProperty(animatedCard, "scale", Vector2.One, 0.1f) // 從 0.2f 減少到 0.1f
+            .SetDelay(0.25f) // 從 0.5f 減少到 0.25f
             .SetEase(Tween.EaseType.Out);
         
         // 在翻牌時顯示正面
@@ -155,7 +155,7 @@ public partial class CardAnimationManager : Node
         {
             animatedCard.SetCardFront();
             GD.Print("抽牌卡牌翻轉到正面");
-        })).SetDelay(0.5f);
+        })).SetDelay(0.25f); // 從 0.5f 減少到 0.25f
         
         // 動畫完成後的回調
         drawTween.TweenCallback(Callable.From(() =>
@@ -210,17 +210,17 @@ public partial class CardAnimationManager : Node
         var playTween = CreateTween();
         playTween.SetParallel(true);
         
-        // 位置動畫
-        float animationDuration = 0.8f;
+        // 位置動畫 - 加快速度
+        float animationDuration = 0.4f; // 從 0.8f 減少到 0.4f
         playTween.TweenProperty(animatedCard, "global_position", targetPos, animationDuration)
             .SetTrans(Tween.TransitionType.Sine)
             .SetEase(Tween.EaseType.Out);
         
-        // 縮放動畫
-        playTween.TweenProperty(animatedCard, "scale", Vector2.One * 1.2f, 0.4f)
+        // 縮放動畫 - 加快速度
+        playTween.TweenProperty(animatedCard, "scale", Vector2.One * 1.2f, 0.2f) // 從 0.4f 減少到 0.2f
             .SetEase(Tween.EaseType.Out);
-        playTween.TweenProperty(animatedCard, "scale", Vector2.One, 0.4f)
-            .SetDelay(0.4f)
+        playTween.TweenProperty(animatedCard, "scale", Vector2.One, 0.2f) // 從 0.4f 減少到 0.2f
+            .SetDelay(0.2f) // 從 0.4f 減少到 0.2f
             .SetEase(Tween.EaseType.In);
         
         // 動畫完成後的回調

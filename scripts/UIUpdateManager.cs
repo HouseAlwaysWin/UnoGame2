@@ -208,6 +208,13 @@ public partial class UIUpdateManager : Node
     {
         if (gameStateManager == null) return;
         
+        // 檢查是否是人類玩家的回合
+        if (gameStateManager.CurrentPlayerIndex != 0)
+        {
+            GameLogger.PlayerAction("玩家", "現在不是你的回合，無法選擇手牌");
+            return;
+        }
+        
         int cardIndex = clickedCard.HandIndex;
         GameLogger.PlayerAction("玩家", $"點擊了手牌: {clickedCard.Color} {clickedCard.CardValue}, 索引: {cardIndex}");
 
@@ -220,6 +227,7 @@ public partial class UIUpdateManager : Node
             
             if (uiManager != null)
             {
+                // 人類玩家回合時，抽牌按鈕應該始終啟用
                 uiManager.SetButtonStates(true, false, true);
             }
             
@@ -238,6 +246,7 @@ public partial class UIUpdateManager : Node
             GameLogger.PlayerAction("玩家", "可以打出這張牌！");
             if (uiManager != null)
             {
+                // 人類玩家回合時，抽牌按鈕應該始終啟用
                 uiManager.SetButtonStates(true, true, true);
             }
         }
@@ -246,6 +255,7 @@ public partial class UIUpdateManager : Node
             GameLogger.PlayerAction("玩家", "這張牌不能打出！");
             if (uiManager != null)
             {
+                // 人類玩家回合時，抽牌按鈕應該始終啟用
                 uiManager.SetButtonStates(true, false, true);
             }
         }

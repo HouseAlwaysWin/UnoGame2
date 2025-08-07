@@ -193,6 +193,10 @@ public partial class GameStateManager : Node
     {
         switch (card.Type)
         {
+            case CardType.Number:
+                // 數字牌沒有特殊效果，不需要處理
+                GD.Print("數字牌，沒有特殊效果");
+                break;
             case CardType.Skip:
                 GD.Print("跳過下一個玩家的回合");
                 EmitSpecialCardEffect(card, CardType.Skip);
@@ -485,6 +489,11 @@ public partial class GameStateManager : Node
                 EmitCardDrawn(cardToDraw, playerIndex);
             }
         }
+
+        // 更新統計數據
+        TotalCardsDrawn++;
+        UpdatePlayerCardCounts();
+        EmitGameStateChanged();
 
         return cardToDraw;
     }

@@ -88,6 +88,13 @@ public partial class MainGame : Node2D
     // UI事件處理
     private void OnDrawCardPressed()
     {
+        // 檢查是否是人類玩家的回合
+        if (gameStateManager.CurrentPlayerIndex != 0)
+        {
+            GD.Print("現在不是你的回合，無法抽牌");
+            return;
+        }
+
         GameLogger.PlayerAction("玩家", "按下抽牌按鈕");
         if (gameStateManager.IsAnimating) return;
 
@@ -109,6 +116,13 @@ public partial class MainGame : Node2D
 
     private void OnPlayCardPressed()
     {
+        // 檢查是否是人類玩家的回合
+        if (gameStateManager.CurrentPlayerIndex != 0)
+        {
+            GD.Print("現在不是你的回合，無法出牌");
+            return;
+        }
+
         if (gameStateManager.SelectedCard != null && gameStateManager.CanPlayCard(gameStateManager.SelectedCard))
         {
             PlayCard(gameStateManager.SelectedCard);
@@ -119,7 +133,17 @@ public partial class MainGame : Node2D
         }
     }
 
-    private void OnUnoPressed() => GD.Print("喊UNO!按鈕被按下");
+    private void OnUnoPressed()
+    {
+        // 檢查是否是人類玩家的回合
+        if (gameStateManager.CurrentPlayerIndex != 0)
+        {
+            GD.Print("現在不是你的回合，無法喊UNO");
+            return;
+        }
+
+        GD.Print("喊UNO!按鈕被按下");
+    }
     private void OnBackToMenuPressed() => GetTree().ChangeSceneToFile("res://scenes/main_screen.tscn");
 
     private void OnColorSelected(string color)
@@ -170,7 +194,7 @@ public partial class MainGame : Node2D
         }
 
         gameStateManager.IsAnimating = true;
-        uiManager.SetButtonStates(false, false, true);
+        uiManager.SetButtonStates(false, false, true); // 動畫期間禁用所有按鈕
 
         // 不要提前移除牌，等動畫完成後再移除
         var cardToDraw = gameStateManager.DrawPile[0];
@@ -351,6 +375,13 @@ public partial class MainGame : Node2D
 
     private void OnPlayerCardClicked(Card clickedCard)
     {
+        // 檢查是否是人類玩家的回合
+        if (gameStateManager.CurrentPlayerIndex != 0)
+        {
+            GD.Print("現在不是你的回合，無法選擇手牌");
+            return;
+        }
+
         int cardIndex = clickedCard.HandIndex;
         GD.Print($"玩家點擊了手牌: {clickedCard.Color} {clickedCard.CardValue}, 索引: {cardIndex}");
 
@@ -385,12 +416,12 @@ public partial class MainGame : Node2D
 
         if (gameStateManager.CurrentPlayerIndex > 0)
         {
-            uiManager.SetButtonStates(false, false, false);
+            uiManager.SetButtonStates(false, false, false); // 電腦玩家回合，禁用所有按鈕
             ExecuteComputerPlayerTurn();
         }
         else
         {
-            uiManager.SetButtonStates(true, false, true);
+            uiManager.SetButtonStates(true, false, true); // 人類玩家回合，啟用抽牌和UNO按鈕
         }
     }
 
@@ -420,13 +451,33 @@ public partial class MainGame : Node2D
                     UpdateDiscardPileDisplay();
                     UpdateGameStatusDisplay();
                     HandleSpecialCardEffect(cardToPlay);
-                    // HandleSpecialCardEffect 已經處理了回合輪換，不需要再次調用 NextPlayer()
+                    // 萬能牌需要手動更新UI狀態，因為GameStateManager已經處理了回合輪換
+                    UpdateGameStatusDisplay();
+                    if (gameStateManager.CurrentPlayerIndex > 0)
+                    {
+                        uiManager.SetButtonStates(false, false, false); // 電腦玩家回合，禁用所有按鈕
+                        ExecuteComputerPlayerTurn();
+                    }
+                    else
+                    {
+                        uiManager.SetButtonStates(true, false, true); // 人類玩家回合，啟用抽牌和UNO按鈕
+                    }
                 }
                 else
                 {
                     // 處理其他類型的牌（Skip、Reverse、DrawTwo、Number）
                     HandleSpecialCardEffect(cardToPlay);
-                    // HandleSpecialCardEffect 已經處理了回合輪換，不需要再次調用 NextPlayer()
+                    // 更新UI狀態，因為GameStateManager已經處理了回合輪換
+                    UpdateGameStatusDisplay();
+                    if (gameStateManager.CurrentPlayerIndex > 0)
+                    {
+                        uiManager.SetButtonStates(false, false, false); // 電腦玩家回合，禁用所有按鈕
+                        ExecuteComputerPlayerTurn();
+                    }
+                    else
+                    {
+                        uiManager.SetButtonStates(true, false, true); // 人類玩家回合，啟用抽牌和UNO按鈕
+                    }
                 }
             }
             else
@@ -445,6 +496,8 @@ public partial class MainGame : Node2D
                     if (drawnCard != null)
                     {
                         uiManager.AddMessage($"{computerPlayer.PlayerName} 抽到: {gameStateManager.GetColorText(drawnCard.Color)} {drawnCard.CardValue}");
+                        gameStateManager.UpdatePlayerCardCounts();
+                        UpdateGameStatusDisplay();
                     }
                 }
                 NextPlayer();
@@ -463,6 +516,7 @@ public partial class MainGame : Node2D
         
         switch (card.Type)
         {
+            case CardType.Number: uiManager.AddMessage("數字牌，沒有特殊效果"); break;
             case CardType.Skip: uiManager.AddMessage("跳過下一個玩家的回合"); break;
             case CardType.Reverse: uiManager.AddMessage("遊戲方向改變"); break;
             case CardType.DrawTwo: uiManager.AddMessage("下一個玩家抽兩張牌"); break;
@@ -484,7 +538,7 @@ public partial class MainGame : Node2D
         
         uiManager.UpdateDrawPileDisplay(gameStateManager.DrawPile.Count);
         uiManager.UpdateDiscardPileDisplay(gameStateManager.CurrentTopCard);
-        uiManager.SetButtonStates(false, false, false);
+        uiManager.SetButtonStates(false, false, false); // 初始化時禁用所有按鈕
         uiManager.HideColorSelectionPanel();
 
         // 總是從人類玩家開始
@@ -574,7 +628,7 @@ public partial class MainGame : Node2D
                 delayTween.TweenCallback(Callable.From(() =>
                 {
                     DealInitialCardWithAnimation(cardIndex + 1);
-                })).SetDelay(0.2f);
+                })).SetDelay(0.1f); // 從 0.2f 減少到 0.1f
             });
         }
         else
