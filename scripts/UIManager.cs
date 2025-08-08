@@ -30,6 +30,9 @@ public partial class UIManager : Node
     // 顏色選擇面板標題
     private Label colorTitle;
     
+    // UNO 通知彈窗
+    private AcceptDialog unoDialog;
+    
     // 事件信號
     public event Action OnDrawCardPressed;
     public event Action OnPlayCardPressed;
@@ -46,6 +49,7 @@ public partial class UIManager : Node
         GD.Print("UIManager 初始化開始");
         InitializeUIReferences();
         ConnectButtonSignals();
+        InitializeDialogs();
         GD.Print("UIManager 初始化完成");
     }
     
@@ -92,6 +96,20 @@ public partial class UIManager : Node
         }
     }
     
+    private void InitializeDialogs()
+    {
+        try
+        {
+            unoDialog = new AcceptDialog();
+            unoDialog.Title = "UNO!";
+            AddChild(unoDialog);
+        }
+        catch (Exception ex)
+        {
+            GD.PrintErr($"初始化彈窗失敗: {ex.Message}");
+        }
+    }
+    
     private void ConnectButtonSignals()
     {
         try
@@ -128,6 +146,21 @@ public partial class UIManager : Node
         {
             GD.PrintErr($"按鈕信號連接失敗: {ex.Message}");
         }
+    }
+    
+    // UNO 彈窗顯示
+    public void ShowUnoCallDialog(string playerName)
+    {
+        if (unoDialog == null)
+        {
+            InitializeDialogs();
+        }
+        if (unoDialog != null)
+        {
+            unoDialog.DialogText = $"{playerName} 喊 UNO!";
+            unoDialog.PopupCentered();
+        }
+        AddMessage($"{playerName} 喊 UNO!");
     }
     
     // 按鈕狀態管理

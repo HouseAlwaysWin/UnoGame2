@@ -6,6 +6,13 @@ public partial class UIUpdateManager : Node
     private UIManager uiManager;
     private GameStateManager gameStateManager;
     
+    private bool ShouldEnableUno()
+    {
+        return gameStateManager != null &&
+               gameStateManager.CurrentPlayerIndex == 0 &&
+               gameStateManager.PlayerHand.Count == 1;
+    }
+    
     // UI更新緩存
     private bool playerHandNeedsUpdate = false;
     private bool drawPileNeedsUpdate = false;
@@ -228,7 +235,7 @@ public partial class UIUpdateManager : Node
             if (uiManager != null)
             {
                 // 人類玩家回合時，抽牌按鈕應該始終啟用
-                uiManager.SetButtonStates(true, false, true);
+                uiManager.SetButtonStates(true, false, ShouldEnableUno());
             }
             
             MarkPlayerHandForUpdate();
@@ -247,7 +254,7 @@ public partial class UIUpdateManager : Node
             if (uiManager != null)
             {
                 // 人類玩家回合時，抽牌按鈕應該始終啟用
-                uiManager.SetButtonStates(true, true, true);
+                uiManager.SetButtonStates(true, true, ShouldEnableUno());
             }
         }
         else
@@ -256,7 +263,7 @@ public partial class UIUpdateManager : Node
             if (uiManager != null)
             {
                 // 人類玩家回合時，抽牌按鈕應該始終啟用
-                uiManager.SetButtonStates(true, false, true);
+                uiManager.SetButtonStates(true, false, ShouldEnableUno());
             }
         }
         

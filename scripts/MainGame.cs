@@ -9,6 +9,13 @@ public partial class MainGame : Node2D
     private UIManager uiManager;
     private CardAnimationManager cardAnimationManager;
 
+    private bool ShouldEnableUno()
+    {
+        return gameStateManager != null &&
+               gameStateManager.CurrentPlayerIndex == 0 &&
+               gameStateManager.PlayerHand.Count == 1;
+    }
+
     public override void _Ready()
     {
         GameLogger.Info("主遊戲場景已加載");
@@ -142,7 +149,15 @@ public partial class MainGame : Node2D
             return;
         }
 
+        // 僅當手牌僅剩一張時可以喊 UNO
+        if (gameStateManager.PlayerHand.Count != 1)
+        {
+            GD.Print("只有剩一張牌時才能喊UNO");
+            return;
+        }
+
         GD.Print("喊UNO!按鈕被按下");
+        uiManager.ShowUnoCallDialog("你");
     }
     private void OnBackToMenuPressed() => GetTree().ChangeSceneToFile("res://scenes/main_screen.tscn");
 
@@ -194,7 +209,7 @@ public partial class MainGame : Node2D
         }
 
         gameStateManager.IsAnimating = true;
-        uiManager.SetButtonStates(false, false, true); // 動畫期間禁用所有按鈕
+        uiManager.SetButtonStates(false, false, false); // 動畫期間禁用所有按鈕
 
         // 不要提前移除牌，等動畫完成後再移除
         var cardToDraw = gameStateManager.DrawPile[0];
@@ -312,7 +327,7 @@ public partial class MainGame : Node2D
         gameStateManager.SelectedCardIndex = -1;
 
         UpdateDisplays();
-        uiManager.SetButtonStates(true, false, true);
+        uiManager.SetButtonStates(true, false, ShouldEnableUno());
 
         if (cardToPlay.Type == CardType.Wild || cardToPlay.Type == CardType.WildDrawFour)
         {
@@ -327,6 +342,12 @@ public partial class MainGame : Node2D
         if (gameStateManager.IsGameOver())
         {
             uiManager.AddMessage("遊戲結束！");
+        }
+
+        // 如果出完牌後只剩一張，提示可以喊 UNO（自動或提示）
+        if (gameStateManager.CurrentPlayerIndex == 0 && gameStateManager.PlayerHand.Count == 1)
+        {
+            uiManager.AddMessage("你只剩一張牌了，記得喊 UNO!");
         }
     }
 
@@ -389,7 +410,7 @@ public partial class MainGame : Node2D
         {
             gameStateManager.SelectedCard = null;
             gameStateManager.SelectedCardIndex = -1;
-            uiManager.SetButtonStates(true, false, true);
+            uiManager.SetButtonStates(true, false, ShouldEnableUno());
             UpdatePlayerHandDisplay();
             return;
         }
@@ -398,7 +419,7 @@ public partial class MainGame : Node2D
         gameStateManager.SelectedCardIndex = cardIndex;
 
         bool canPlay = gameStateManager.CanPlayCard(clickedCard);
-        uiManager.SetButtonStates(true, canPlay, true);
+        uiManager.SetButtonStates(true, canPlay, ShouldEnableUno());
         UpdatePlayerHandDisplay();
     }
 
@@ -421,7 +442,7 @@ public partial class MainGame : Node2D
         }
         else
         {
-            uiManager.SetButtonStates(true, false, true); // 人類玩家回合，啟用抽牌和UNO按鈕
+            uiManager.SetButtonStates(true, false, ShouldEnableUno()); // 人類玩家回合，UNO 僅在剩一張時啟用
         }
     }
 
@@ -453,6 +474,11 @@ public partial class MainGame : Node2D
                     HandleSpecialCardEffect(cardToPlay);
                     // 萬能牌需要手動更新UI狀態，因為GameStateManager已經處理了回合輪換
                     UpdateGameStatusDisplay();
+                    // 電腦喊 UNO：若只剩一張
+                    if (computerPlayer.Hand.Count == 1)
+                    {
+                        uiManager.ShowUnoCallDialog(computerPlayer.PlayerName);
+                    }
                     if (gameStateManager.CurrentPlayerIndex > 0)
                     {
                         uiManager.SetButtonStates(false, false, false); // 電腦玩家回合，禁用所有按鈕
@@ -460,7 +486,7 @@ public partial class MainGame : Node2D
                     }
                     else
                     {
-                        uiManager.SetButtonStates(true, false, true); // 人類玩家回合，啟用抽牌和UNO按鈕
+                        uiManager.SetButtonStates(true, false, ShouldEnableUno()); // 人類玩家回合，UNO 僅在剩一張時啟用
                     }
                 }
                 else
@@ -469,6 +495,11 @@ public partial class MainGame : Node2D
                     HandleSpecialCardEffect(cardToPlay);
                     // 更新UI狀態，因為GameStateManager已經處理了回合輪換
                     UpdateGameStatusDisplay();
+                    // 電腦喊 UNO：若只剩一張
+                    if (computerPlayer.Hand.Count == 1)
+                    {
+                        uiManager.ShowUnoCallDialog(computerPlayer.PlayerName);
+                    }
                     if (gameStateManager.CurrentPlayerIndex > 0)
                     {
                         uiManager.SetButtonStates(false, false, false); // 電腦玩家回合，禁用所有按鈕
@@ -476,7 +507,7 @@ public partial class MainGame : Node2D
                     }
                     else
                     {
-                        uiManager.SetButtonStates(true, false, true); // 人類玩家回合，啟用抽牌和UNO按鈕
+                        uiManager.SetButtonStates(true, false, ShouldEnableUno()); // 人類玩家回合，UNO 僅在剩一張時啟用
                     }
                 }
             }
@@ -498,6 +529,11 @@ public partial class MainGame : Node2D
                         uiManager.AddMessage($"{computerPlayer.PlayerName} 抽到: {gameStateManager.GetColorText(drawnCard.Color)} {drawnCard.CardValue}");
                         gameStateManager.UpdatePlayerCardCounts();
                         UpdateGameStatusDisplay();
+                        // 電腦喊 UNO：抽牌後若只剩一張
+                        if (computerPlayer.Hand.Count == 1)
+                        {
+                            uiManager.ShowUnoCallDialog(computerPlayer.PlayerName);
+                        }
                     }
                 }
                 NextPlayer();
@@ -547,7 +583,7 @@ public partial class MainGame : Node2D
         UpdateGameStatusDisplay();
         
         // 啟用人類玩家的按鈕
-        uiManager.SetButtonStates(true, false, true);
+        uiManager.SetButtonStates(true, false, ShouldEnableUno());
 
         StartInitialDealAnimation();
     }
