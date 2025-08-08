@@ -76,6 +76,9 @@ public partial class GameStateManager : Node
     public int TotalCardsPlayed { get; set; } = 0;
     public int TotalCardsDrawn { get; set; } = 0;
     public Dictionary<int, int> PlayerCardCounts { get; set; } = new Dictionary<int, int>();
+    
+    // UNO 狀態追蹤：每位玩家是否已在手牌為 1 時喊過 UNO
+    public List<bool> PlayerHasCalledUno { get; private set; } = new List<bool>();
 
     // 遊戲配置設定
     public int InitialCardsPerPlayer { get; set; } = 7;
@@ -130,8 +133,15 @@ public partial class GameStateManager : Node
     // 玩家管理方法
     public void NextPlayer()
     {
-        // 輪換到下一個玩家
-        CurrentPlayerIndex = (CurrentPlayerIndex + 1) % PlayerCount;
+        // 輪換到下一個玩家（依照當前方向）
+        if (IsClockwiseDirection)
+        {
+            CurrentPlayerIndex = (CurrentPlayerIndex + 1) % PlayerCount;
+        }
+        else
+        {
+            CurrentPlayerIndex = (CurrentPlayerIndex - 1 + PlayerCount) % PlayerCount;
+        }
         GD.Print($"輪換到下一個玩家: {GetCurrentPlayerName()}");
         GD.Print($"當前玩家索引: {CurrentPlayerIndex}");
         
@@ -142,8 +152,15 @@ public partial class GameStateManager : Node
 
     public void NextPlayerWithoutComputerTurn()
     {
-        // 輪換到下一個玩家，但不執行電腦玩家回合
-        CurrentPlayerIndex = (CurrentPlayerIndex + 1) % PlayerCount;
+        // 輪換到下一個玩家，但不執行電腦玩家回合（依照當前方向）
+        if (IsClockwiseDirection)
+        {
+            CurrentPlayerIndex = (CurrentPlayerIndex + 1) % PlayerCount;
+        }
+        else
+        {
+            CurrentPlayerIndex = (CurrentPlayerIndex - 1 + PlayerCount) % PlayerCount;
+        }
         GD.Print($"輪換到下一個玩家: {GetCurrentPlayerName()}");
         
         // 觸發玩家回合改變事件
@@ -200,15 +217,15 @@ public partial class GameStateManager : Node
             case CardType.Skip:
                 GD.Print("跳過下一個玩家的回合");
                 EmitSpecialCardEffect(card, CardType.Skip);
-                NextPlayer(); // 跳過一個玩家
+                // 不在這裡換手，由上層（MainGame）統一處理：
+                // 先 NextPlayerWithoutComputerTurn() 再 NextPlayer()
                 break;
             case CardType.Reverse:
                 GD.Print("遊戲方向改變");
                 // 反轉遊戲方向
                 IsClockwiseDirection = !IsClockwiseDirection;
                 EmitSpecialCardEffect(card, CardType.Reverse);
-                // 反轉牌需要輪換到下一個玩家
-                NextPlayer();
+                // 反轉只切換方向，不在此處換手；由上層流程決定何時換手
                 break;
             case CardType.DrawTwo:
                 GD.Print("下一個玩家抽兩張牌");
@@ -226,7 +243,7 @@ public partial class GameStateManager : Node
             case CardType.Wild:
                 GD.Print("萬能牌，輪換到下一個玩家");
                 EmitSpecialCardEffect(card, CardType.Wild);
-                NextPlayer();
+                // 不在此換手，由外部流程決定（選色之後）
                 break;
             case CardType.WildDrawFour:
                 GD.Print("下一個玩家抽四張牌");
@@ -436,17 +453,32 @@ public partial class GameStateManager : Node
     // 新增方法：打出卡牌
     public void PlayCard(Card card, int playerIndex)
     {
-        // 從玩家手牌中移除這張牌
+        // 從玩家手牌中移除這張牌（移除第一個匹配到的實例）
         if (playerIndex == 0)
         {
-            PlayerHand.Remove(card);
+            for (int i = 0; i < PlayerHand.Count; i++)
+            {
+                if (PlayerHand[i].Equals(card))
+                {
+                    PlayerHand.RemoveAt(i);
+                    break;
+                }
+            }
         }
         else
         {
             int computerPlayerIndex = playerIndex - 1;
             if (computerPlayerIndex < ComputerPlayers.Count)
             {
-                ComputerPlayers[computerPlayerIndex].Hand.Remove(card);
+                var hand = ComputerPlayers[computerPlayerIndex].Hand;
+                for (int i = 0; i < hand.Count; i++)
+                {
+                    if (hand[i].Equals(card))
+                    {
+                        hand.RemoveAt(i);
+                        break;
+                    }
+                }
             }
         }
 
@@ -472,6 +504,7 @@ public partial class GameStateManager : Node
             return null;
         }
 
+        // 從抽牌堆頂部取牌
         var cardToDraw = DrawPile[0];
         DrawPile.RemoveAt(0);
 
@@ -534,6 +567,13 @@ public partial class GameStateManager : Node
 
         // 清空現有電腦玩家
         ComputerPlayers.Clear();
+        
+        // 初始化 UNO 狀態旗標
+        PlayerHasCalledUno.Clear();
+        for (int i = 0; i < PlayerCount; i++)
+        {
+            PlayerHasCalledUno.Add(false);
+        }
 
         // 創建電腦玩家（總人數減去1個人類玩家）
         for (int i = 1; i < PlayerCount; i++)

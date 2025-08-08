@@ -8,12 +8,19 @@ public partial class MainGame : Node2D
     private GameStateManager gameStateManager;
     private UIManager uiManager;
     private CardAnimationManager cardAnimationManager;
+    private bool isComputerTurnRunning = false;
 
     private bool ShouldEnableUno()
     {
         return gameStateManager != null &&
                gameStateManager.CurrentPlayerIndex == 0 &&
                gameStateManager.PlayerHand.Count == 1;
+    }
+
+    private async Task WaitSeconds(float seconds)
+    {
+        var timer = GetTree().CreateTimer(seconds);
+        await ToSignal(timer, "timeout");
     }
 
     public override void _Ready()
@@ -67,20 +74,39 @@ public partial class MainGame : Node2D
 
     // GameStateManager事件處理
     private void OnGameStateChanged() => GD.Print("遊戲狀態已改變");
-    private void OnPlayerTurnChanged(int playerIndex) => GD.Print($"玩家回合改變: 玩家 {playerIndex}");
+    private void OnPlayerTurnChanged(int playerIndex)
+    {
+        GD.Print($"玩家回合改變: 玩家 {playerIndex}");
+        uiManager.UpdateCurrentTurnHighlight(gameStateManager.CurrentPlayerIndex);
+    }
     private void OnCardPlayed(Card card, int playerIndex)
     {
         string playerName = playerIndex == 0 ? "你" : gameStateManager.GetCurrentPlayerName();
-        string message = $"{playerName} 打出: {gameStateManager.GetColorText(card.Color)} {card.CardValue}";
+        string message;
+        if (card.Type == CardType.Wild)
+        {
+            message = $"{playerName} 打出: 萬能牌";
+        }
+        else if (card.Type == CardType.WildDrawFour)
+        {
+            message = $"{playerName} 打出: 萬能牌+4";
+        }
+        else
+        {
+            message = $"{playerName} 打出: {gameStateManager.GetColorText(card.Color)} {card.CardValue}";
+        }
         GD.Print(message);
         uiManager.AddMessage(message);
     }
     private void OnCardDrawn(Card card, int playerIndex)
     {
-        string playerName = playerIndex == 0 ? "你" : gameStateManager.GetCurrentPlayerName();
-        string message = $"{playerName} 抽到: {gameStateManager.GetColorText(card.Color)} {card.CardValue}";
-        GD.Print(message);
-        uiManager.AddMessage(message);
+        // 僅顯示人類玩家抽牌，不顯示電腦抽到什麼
+        if (playerIndex == 0)
+        {
+            string message = $"你 抽到: {gameStateManager.GetColorText(card.Color)} {card.CardValue}";
+            GD.Print(message);
+            uiManager.AddMessage(message);
+        }
     }
     private void OnGamePhaseChanged(int newPhase) => GD.Print($"遊戲階段改變: {(GamePhase)newPhase}");
     private void OnSpecialCardEffect(Card card, int effectType) => GD.Print($"特殊牌效果: {(CardType)effectType}");
@@ -90,6 +116,7 @@ public partial class MainGame : Node2D
         string message = $"遊戲結束！獲勝者: {winnerName}";
         GD.Print(message);
         uiManager.AddMessage(message);
+        uiManager.ShowToast(message, 2.2f);
     }
 
     // UI事件處理
@@ -158,6 +185,11 @@ public partial class MainGame : Node2D
 
         GD.Print("喊UNO!按鈕被按下");
         uiManager.ShowUnoCallDialog("你");
+        // 標記玩家已喊 UNO
+        if (gameStateManager.PlayerHasCalledUno.Count > 0)
+        {
+            gameStateManager.PlayerHasCalledUno[0] = true;
+        }
     }
     private void OnBackToMenuPressed() => GetTree().ChangeSceneToFile("res://scenes/main_screen.tscn");
 
@@ -336,7 +368,18 @@ public partial class MainGame : Node2D
         else
         {
             HandleSpecialCardEffect(cardToPlay);
-            NextPlayer();
+            // 換手規則：
+            // - Number/Reverse：這裡手動換一次
+            // - Skip：跳過下一位（先換到下一位但不執行，接著再換一次）
+            if (cardToPlay.Type == CardType.Number || cardToPlay.Type == CardType.Reverse)
+            {
+                NextPlayer();
+            }
+            else if (cardToPlay.Type == CardType.Skip)
+            {
+                gameStateManager.NextPlayerWithoutComputerTurn(); // 跳過一位
+                NextPlayer(); // 換到下一位
+            }
         }
 
         if (gameStateManager.IsGameOver())
@@ -348,6 +391,11 @@ public partial class MainGame : Node2D
         if (gameStateManager.CurrentPlayerIndex == 0 && gameStateManager.PlayerHand.Count == 1)
         {
             uiManager.AddMessage("你只剩一張牌了，記得喊 UNO!");
+            // 重置你的 UNO 旗標為尚未喊，等待本回合喊UNO
+            if (gameStateManager.PlayerHasCalledUno.Count > 0)
+            {
+                gameStateManager.PlayerHasCalledUno[0] = false;
+            }
         }
     }
 
@@ -389,9 +437,16 @@ public partial class MainGame : Node2D
         string currentPlayerName = gameStateManager.GetCurrentPlayerName();
         string colorText = gameStateManager.CurrentTopCard != null ? 
                           gameStateManager.GetColorText(gameStateManager.CurrentTopCard.Color) : "無";
-        string allPlayersCardsInfo = gameStateManager.GetAllPlayersCardsInfo();
-        
-        uiManager.UpdateGameStatusDisplay(currentPlayerName, colorText, allPlayersCardsInfo);
+        // 僅顯示顏色與當前玩家於上方狀態
+        uiManager.UpdateGameStatusDisplay(currentPlayerName, colorText, "");
+        // 更新順序列上的手牌數
+        var counts = new List<int>();
+        counts.Add(gameStateManager.PlayerHand.Count);
+        foreach (var cpu in gameStateManager.ComputerPlayers)
+        {
+            counts.Add(cpu.Hand.Count);
+        }
+        uiManager.UpdateTurnOrderCounts(counts);
     }
 
     private void OnPlayerCardClicked(Card clickedCard)
@@ -432,13 +487,76 @@ public partial class MainGame : Node2D
 
     private void NextPlayer()
     {
+        // 在切換前，檢查剛結束回合的玩家是否違規（手牌=1且未喊UNO）
+        int previousPlayerIndex = gameStateManager.CurrentPlayerIndex;
+        // 人類玩家
+        if (previousPlayerIndex == 0)
+        {
+            if (gameStateManager.PlayerHand.Count == 1)
+            {
+                bool hasCalled = gameStateManager.PlayerHasCalledUno.Count > 0 && gameStateManager.PlayerHasCalledUno[0];
+                if (!hasCalled)
+                {
+                    uiManager.AddMessage("你沒有喊 UNO，受到懲罰抽一張牌！");
+                    var drawnCard = gameStateManager.DrawCard(0);
+                    // 懲罰動畫（人類）：從抽牌堆飛到玩家手牌區
+                    if (drawnCard != null && cardAnimationManager != null && uiManager?.DrawPileUI != null && uiManager?.PlayerHandUI != null)
+                    {
+                        Vector2 startPos = uiManager.DrawPileUI.GlobalPosition + uiManager.DrawPileUI.Size / 2;
+                        float cardWidth = 80.0f;
+                        float cardSpacing = 10.0f;
+                        float startX = uiManager.PlayerHandUI.GlobalPosition.X + cardWidth / 2;
+                        float targetX = startX + (gameStateManager.PlayerHand.Count * (cardWidth + cardSpacing));
+                        Vector2 targetPos = new Vector2(targetX, uiManager.PlayerHandUI.GlobalPosition.Y + uiManager.PlayerHandUI.Size.Y / 2);
+                        cardAnimationManager.CreateDrawCardAnimation(drawnCard, startPos, targetPos, () => { });
+                    }
+                    UpdateDisplays();
+                }
+            }
+            // 重置旗標
+            if (gameStateManager.PlayerHasCalledUno.Count > 0)
+                gameStateManager.PlayerHasCalledUno[0] = false;
+        }
+        else
+        {
+            int cpuIdx = previousPlayerIndex - 1;
+            if (cpuIdx >= 0 && cpuIdx < gameStateManager.ComputerPlayers.Count)
+            {
+                if (gameStateManager.ComputerPlayers[cpuIdx].Hand.Count == 1)
+                {
+                    bool hasCalled = gameStateManager.PlayerHasCalledUno.Count > previousPlayerIndex && gameStateManager.PlayerHasCalledUno[previousPlayerIndex];
+                    if (!hasCalled)
+                    {
+                        uiManager.AddMessage($"{gameStateManager.ComputerPlayers[cpuIdx].PlayerName} 沒有喊 UNO，受到懲罰抽一張牌！");
+                        var drawnCard = gameStateManager.DrawCard(previousPlayerIndex);
+                        // 懲罰動畫（電腦）：從抽牌堆飛到棄牌堆上方（代表電腦手牌區）
+                        if (drawnCard != null && cardAnimationManager != null && uiManager?.DrawPileUI != null)
+                        {
+                            Vector2 startPos = uiManager.DrawPileUI.GlobalPosition + uiManager.DrawPileUI.Size / 2;
+                            Vector2 targetPos = (uiManager?.DiscardPileUI != null)
+                                ? uiManager.DiscardPileUI.GlobalPosition + new Vector2(0, -140)
+                                : startPos + new Vector2(0, -140);
+                            cardAnimationManager.CreateDrawCardAnimation(drawnCard, startPos, targetPos, () => { });
+                        }
+                        UpdateGameStatusDisplay();
+                    }
+                }
+                // 重置旗標
+                if (gameStateManager.PlayerHasCalledUno.Count > previousPlayerIndex)
+                    gameStateManager.PlayerHasCalledUno[previousPlayerIndex] = false;
+            }
+        }
+
         gameStateManager.NextPlayer();
         UpdateGameStatusDisplay();
 
         if (gameStateManager.CurrentPlayerIndex > 0)
         {
             uiManager.SetButtonStates(false, false, false); // 電腦玩家回合，禁用所有按鈕
-            ExecuteComputerPlayerTurn();
+            if (!isComputerTurnRunning)
+            {
+                ExecuteComputerPlayerTurn();
+            }
         }
         else
         {
@@ -446,8 +564,10 @@ public partial class MainGame : Node2D
         }
     }
 
-    private void ExecuteComputerPlayerTurn()
+    private async void ExecuteComputerPlayerTurn()
     {
+        if (isComputerTurnRunning) return;
+        isComputerTurnRunning = true;
         int computerPlayerIndex = gameStateManager.CurrentPlayerIndex - 1;
         
         if (computerPlayerIndex < gameStateManager.ComputerPlayers.Count)
@@ -455,14 +575,54 @@ public partial class MainGame : Node2D
             var computerPlayer = gameStateManager.ComputerPlayers[computerPlayerIndex];
             uiManager.AddMessage($"{computerPlayer.PlayerName} 的回合開始");
 
+            // 停頓一下，讓動作更容易看清
+            await WaitSeconds(0.6f);
+
             Card cardToPlay = computerPlayer.ChooseCardToPlay(gameStateManager.CurrentTopCard);
 
             if (cardToPlay != null)
             {
-                uiManager.AddMessage($"{computerPlayer.PlayerName} 打出: {gameStateManager.GetColorText(cardToPlay.Color)} {cardToPlay.CardValue}");
-                gameStateManager.PlayCard(cardToPlay, gameStateManager.CurrentPlayerIndex);
-                UpdateDiscardPileDisplay();
-                UpdateGameStatusDisplay();
+                // 出牌訊息改由 OnCardPlayed 事件統一產生，避免重複
+                if (cardAnimationManager != null && uiManager?.DiscardPileUI != null)
+                {
+                    gameStateManager.IsAnimating = true;
+                    uiManager.SetButtonStates(false, false, false);
+                    // 電腦出牌動畫：從棄牌堆上方飛入
+                    Vector2 startPos = uiManager.DiscardPileUI.GlobalPosition + new Vector2(0, -140);
+                    Vector2 targetPos = uiManager.DiscardPileUI.GlobalPosition;
+                    bool computerWon = false;
+                    cardAnimationManager.CreatePlayCardAnimation(cardToPlay, startPos, targetPos, () =>
+                    {
+                        gameStateManager.PlayCard(cardToPlay, gameStateManager.CurrentPlayerIndex);
+                        UpdateDiscardPileDisplay();
+                        UpdateGameStatusDisplay();
+                        gameStateManager.IsAnimating = false;
+                        // 若出完變成 0 張，直接結束
+                        if (computerPlayer.Hand.Count == 0)
+                        {
+                            gameStateManager.IsGameOver();
+                            computerWon = true;
+                        }
+                    });
+                    await WaitSeconds(0.6f);
+                    if (computerWon)
+                    {
+                        isComputerTurnRunning = false;
+                        return;
+                    }
+                }
+                else
+                {
+                    gameStateManager.PlayCard(cardToPlay, gameStateManager.CurrentPlayerIndex);
+                    UpdateDiscardPileDisplay();
+                    UpdateGameStatusDisplay();
+                    if (computerPlayer.Hand.Count == 0)
+                    {
+                        gameStateManager.IsGameOver();
+                        isComputerTurnRunning = false;
+                        return;
+                    }
+                }
 
                 if (cardToPlay.Type == CardType.Wild || cardToPlay.Type == CardType.WildDrawFour)
                 {
@@ -478,16 +638,17 @@ public partial class MainGame : Node2D
                     if (computerPlayer.Hand.Count == 1)
                     {
                         uiManager.ShowUnoCallDialog(computerPlayer.PlayerName);
+                        if (gameStateManager.PlayerHasCalledUno.Count > gameStateManager.CurrentPlayerIndex)
+                        {
+                            gameStateManager.PlayerHasCalledUno[gameStateManager.CurrentPlayerIndex] = true;
+                        }
                     }
-                    if (gameStateManager.CurrentPlayerIndex > 0)
+                    // Wild 自己不會在 GSM 內換手，這裡主動換到下一位
+                    if (cardToPlay.Type == CardType.Wild)
                     {
-                        uiManager.SetButtonStates(false, false, false); // 電腦玩家回合，禁用所有按鈕
-                        ExecuteComputerPlayerTurn();
+                        NextPlayer();
                     }
-                    else
-                    {
-                        uiManager.SetButtonStates(true, false, ShouldEnableUno()); // 人類玩家回合，UNO 僅在剩一張時啟用
-                    }
+                    // 後續由 NextPlayer 觸發
                 }
                 else
                 {
@@ -495,19 +656,19 @@ public partial class MainGame : Node2D
                     HandleSpecialCardEffect(cardToPlay);
                     // 更新UI狀態，因為GameStateManager已經處理了回合輪換
                     UpdateGameStatusDisplay();
+                    // 對於數字/反轉，需在這裡手動切到下一位（反轉僅切換方向，不換手）
+                    if (cardToPlay.Type == CardType.Number || cardToPlay.Type == CardType.Reverse)
+                    {
+                        NextPlayer();
+                    }
                     // 電腦喊 UNO：若只剩一張
                     if (computerPlayer.Hand.Count == 1)
                     {
                         uiManager.ShowUnoCallDialog(computerPlayer.PlayerName);
-                    }
-                    if (gameStateManager.CurrentPlayerIndex > 0)
-                    {
-                        uiManager.SetButtonStates(false, false, false); // 電腦玩家回合，禁用所有按鈕
-                        ExecuteComputerPlayerTurn();
-                    }
-                    else
-                    {
-                        uiManager.SetButtonStates(true, false, ShouldEnableUno()); // 人類玩家回合，UNO 僅在剩一張時啟用
+                        if (gameStateManager.PlayerHasCalledUno.Count > gameStateManager.CurrentPlayerIndex)
+                        {
+                            gameStateManager.PlayerHasCalledUno[gameStateManager.CurrentPlayerIndex] = true;
+                        }
                     }
                 }
             }
@@ -526,13 +687,26 @@ public partial class MainGame : Node2D
                     var drawnCard = gameStateManager.DrawCard(gameStateManager.CurrentPlayerIndex);
                     if (drawnCard != null)
                     {
-                        uiManager.AddMessage($"{computerPlayer.PlayerName} 抽到: {gameStateManager.GetColorText(drawnCard.Color)} {drawnCard.CardValue}");
+                        // 抽牌訊息改由 OnCardDrawn 事件統一產生，避免重複
                         gameStateManager.UpdatePlayerCardCounts();
+                        if (cardAnimationManager != null && uiManager?.DrawPileUI != null)
+                        {
+                            Vector2 startPos = uiManager.DrawPileUI.GlobalPosition + uiManager.DrawPileUI.Size / 2;
+                            Vector2 targetPos = (uiManager?.DiscardPileUI != null)
+                                ? uiManager.DiscardPileUI.GlobalPosition + new Vector2(0, -140)
+                                : startPos + new Vector2(0, -140);
+                            cardAnimationManager.CreateDrawCardAnimation(drawnCard, startPos, targetPos, () => { });
+                            await WaitSeconds(0.5f);
+                        }
                         UpdateGameStatusDisplay();
                         // 電腦喊 UNO：抽牌後若只剩一張
                         if (computerPlayer.Hand.Count == 1)
                         {
                             uiManager.ShowUnoCallDialog(computerPlayer.PlayerName);
+                            if (gameStateManager.PlayerHasCalledUno.Count > gameStateManager.CurrentPlayerIndex)
+                            {
+                                gameStateManager.PlayerHasCalledUno[gameStateManager.CurrentPlayerIndex] = true;
+                            }
                         }
                     }
                 }
@@ -544,6 +718,12 @@ public partial class MainGame : Node2D
             gameStateManager.CurrentPlayerIndex = 0;
             NextPlayer();
         }
+        isComputerTurnRunning = false;
+        // 若下一位仍是電腦，並且這次回合結束後仍需繼續，這裡啟動下一位電腦回合
+        if (gameStateManager.CurrentPlayerIndex > 0)
+        {
+            ExecuteComputerPlayerTurn();
+        }
     }
 
     private void HandleSpecialCardEffect(Card card)
@@ -554,7 +734,17 @@ public partial class MainGame : Node2D
         {
             case CardType.Number: uiManager.AddMessage("數字牌，沒有特殊效果"); break;
             case CardType.Skip: uiManager.AddMessage("跳過下一個玩家的回合"); break;
-            case CardType.Reverse: uiManager.AddMessage("遊戲方向改變"); break;
+            case CardType.Reverse:
+                uiManager.AddMessage("遊戲方向改變");
+                // 方向已在 GameStateManager 中切換，這裡僅刷新順序列與高亮
+                var names = new List<string> { "玩家1 (你)" };
+                foreach (var cpu in gameStateManager.ComputerPlayers) names.Add(cpu.PlayerName);
+                uiManager.InitializeTurnOrder(names);
+                var counts = new List<int> { gameStateManager.PlayerHand.Count };
+                foreach (var cpu in gameStateManager.ComputerPlayers) counts.Add(cpu.Hand.Count);
+                uiManager.UpdateTurnOrderCounts(counts);
+                uiManager.UpdateCurrentTurnHighlight(gameStateManager.CurrentPlayerIndex);
+                break;
             case CardType.DrawTwo: uiManager.AddMessage("下一個玩家抽兩張牌"); break;
             case CardType.Wild: uiManager.AddMessage("萬能牌，輪換到下一個玩家"); break;
             case CardType.WildDrawFour: uiManager.AddMessage("下一個玩家抽四張牌"); break;
@@ -581,6 +771,15 @@ public partial class MainGame : Node2D
         gameStateManager.CurrentPlayerIndex = 0;
         
         UpdateGameStatusDisplay();
+        // 初始化玩家順序UI
+        var playerNames = new List<string>();
+        playerNames.Add("玩家1 (你)");
+        foreach (var cpu in gameStateManager.ComputerPlayers)
+        {
+            playerNames.Add(cpu.PlayerName);
+        }
+        uiManager.InitializeTurnOrder(playerNames);
+        uiManager.UpdateCurrentTurnHighlight(gameStateManager.CurrentPlayerIndex);
         
         // 啟用人類玩家的按鈕
         uiManager.SetButtonStates(true, false, ShouldEnableUno());

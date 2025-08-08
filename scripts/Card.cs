@@ -145,14 +145,40 @@ public partial class Card : TextureRect
     
     public bool CanPlayOn(Card topCard)
     {
-        // 檢查是否可以打出這張牌
+        // 規則：
+        // - Wild/WildDrawFour 可隨時打出
+        // - 若頂牌為 Wild/WildDrawFour，則必須符合其指定顏色
+        // - Number 牌：顏色相同或數字相同
+        // - Skip/Reverse/DrawTwo：顏色相同或類型相同
         if (Type == CardType.Wild || Type == CardType.WildDrawFour)
         {
-            return true; // 萬能牌可以隨時打出
+            return true;
         }
-        
-        // 檢查顏色或數字是否匹配
-        return Color == topCard.Color || CardValue == topCard.CardValue;
+
+        if (topCard == null)
+        {
+            return true;
+        }
+
+        if (topCard.Type == CardType.Wild || topCard.Type == CardType.WildDrawFour)
+        {
+            // 萬能牌指定顏色後，需匹配該顏色
+            return Color == topCard.Color;
+        }
+
+        if (Type == CardType.Number && topCard.Type == CardType.Number)
+        {
+            return Color == topCard.Color || CardValue == topCard.CardValue;
+        }
+
+        if (Type != CardType.Number && topCard.Type != CardType.Number)
+        {
+            // 特殊牌相互：顏色或類型相同
+            return Color == topCard.Color || Type == topCard.Type;
+        }
+
+        // 其餘情況：只要顏色相同即可
+        return Color == topCard.Color;
     }
     
     public override void _GuiInput(InputEvent @event)

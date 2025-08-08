@@ -30,8 +30,13 @@ public partial class UIManager : Node
     // 顏色選擇面板標題
     private Label colorTitle;
     
-    // UNO 通知彈窗
-    private AcceptDialog unoDialog;
+    // UNO Toast 通知
+    private Label toastLabel;
+
+    // 目前玩家順序UI
+    private HBoxContainer turnOrderBar;
+    private List<Label> turnOrderLabels = new List<Label>();
+    private List<string> turnOrderNames = new List<string>();
     
     // 事件信號
     public event Action OnDrawCardPressed;
@@ -49,7 +54,7 @@ public partial class UIManager : Node
         GD.Print("UIManager 初始化開始");
         InitializeUIReferences();
         ConnectButtonSignals();
-        InitializeDialogs();
+        InitializeToast();
         GD.Print("UIManager 初始化完成");
     }
     
@@ -96,17 +101,33 @@ public partial class UIManager : Node
         }
     }
     
-    private void InitializeDialogs()
+    private void InitializeToast()
     {
         try
         {
-            unoDialog = new AcceptDialog();
-            unoDialog.Title = "UNO!";
-            AddChild(unoDialog);
+            if (toastLabel == null)
+            {
+                var uiLayer = GetNode<CanvasLayer>("../UILayer");
+                toastLabel = new Label();
+                toastLabel.Text = string.Empty;
+                toastLabel.Visible = false;
+                toastLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+                toastLabel.AddThemeConstantOverride("outline_size", 8);
+                toastLabel.AddThemeColorOverride("font_color", new Color(1, 1, 1, 1));
+                toastLabel.AddThemeColorOverride("font_outline_color", new Color(0, 0, 0, 0.8f));
+                toastLabel.AddThemeConstantOverride("font_size", 36);
+                toastLabel.HorizontalAlignment = HorizontalAlignment.Center;
+                toastLabel.VerticalAlignment = VerticalAlignment.Center;
+                toastLabel.SetAnchorsPreset(Control.LayoutPreset.CenterTop);
+                toastLabel.Position = new Vector2(0, 40);
+                // 以較高但安全的 ZIndex，避免超出 Godot 限制
+                toastLabel.ZIndex = 100;
+                uiLayer.AddChild(toastLabel);
+            }
         }
         catch (Exception ex)
         {
-            GD.PrintErr($"初始化彈窗失敗: {ex.Message}");
+            GD.PrintErr($"初始化Toast失敗: {ex.Message}");
         }
     }
     
@@ -148,19 +169,111 @@ public partial class UIManager : Node
         }
     }
     
-    // UNO 彈窗顯示
+    // 通用 Toast 顯示
+    public void ShowToast(string text, float durationSeconds = 1.6f)
+    {
+        InitializeToast();
+        if (toastLabel == null) return;
+        toastLabel.Text = text;
+        toastLabel.Visible = true;
+        toastLabel.Modulate = new Color(1, 1, 1, 1);
+        toastLabel.SetAnchorsPreset(Control.LayoutPreset.CenterTop);
+        toastLabel.Position = new Vector2(0, 48);
+        var tween = CreateTween();
+        tween.TweenInterval(Mathf.Max(0.3f, durationSeconds - 0.5f));
+        tween.TweenProperty(toastLabel, "modulate:a", 0.0f, 0.5f)
+             .SetTrans(Tween.TransitionType.Sine)
+             .SetEase(Tween.EaseType.InOut);
+        tween.TweenCallback(Callable.From(() => toastLabel.Visible = false));
+    }
+
+    // UNO Toast 顯示
     public void ShowUnoCallDialog(string playerName)
     {
-        if (unoDialog == null)
-        {
-            InitializeDialogs();
-        }
-        if (unoDialog != null)
-        {
-            unoDialog.DialogText = $"{playerName} 喊 UNO!";
-            unoDialog.PopupCentered();
-        }
+        ShowToast($"{playerName} 喊 UNO!", 1.8f);
+        // 也寫入訊息紀錄（便於回顧）
         AddMessage($"{playerName} 喊 UNO!");
+    }
+
+    // 初始化玩家順序列（動態建立）
+    public void InitializeTurnOrder(List<string> playerNames)
+    {
+        try
+        {
+            if (turnOrderBar == null)
+            {
+                var uiLayer = GetNode<CanvasLayer>("../UILayer");
+                turnOrderBar = new HBoxContainer();
+                turnOrderBar.AddThemeConstantOverride("separation", 12);
+                turnOrderBar.SetAnchorsPreset(Control.LayoutPreset.TopWide);
+                turnOrderBar.OffsetLeft = 180; // 讓出左側按鈕空間
+                turnOrderBar.OffsetRight = -180; // 讓出右側返回主選單
+                turnOrderBar.Position = new Vector2(0, 48); // 下移避免與上方狀態/按鈕重疊
+                uiLayer.AddChild(turnOrderBar);
+            }
+            // 清空舊的
+            foreach (var child in turnOrderBar.GetChildren())
+            {
+                child.QueueFree();
+            }
+            turnOrderLabels.Clear();
+            turnOrderNames.Clear();
+
+            for (int i = 0; i < playerNames.Count; i++)
+            {
+                var lbl = new Label();
+                lbl.Text = playerNames[i];
+                lbl.AddThemeConstantOverride("font_size", 22);
+                lbl.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f));
+                turnOrderBar.AddChild(lbl);
+                turnOrderLabels.Add(lbl);
+                turnOrderNames.Add(playerNames[i]);
+
+                if (i < playerNames.Count - 1)
+                {
+                var arrow = new Label();
+                arrow.Text = "  →  ";
+                    arrow.AddThemeConstantOverride("font_size", 22);
+                    arrow.AddThemeColorOverride("font_color", new Color(0.7f, 0.7f, 0.7f));
+                    turnOrderBar.AddChild(arrow);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            GD.PrintErr($"初始化玩家順序UI失敗: {ex.Message}");
+        }
+    }
+
+    // 高亮目前玩家
+    public void UpdateCurrentTurnHighlight(int currentPlayerIndex)
+    {
+        if (turnOrderLabels == null || turnOrderLabels.Count == 0) return;
+        for (int i = 0; i < turnOrderLabels.Count; i++)
+        {
+            if (turnOrderLabels[i] == null) continue;
+            if (i == currentPlayerIndex)
+            {
+                turnOrderLabels[i].AddThemeColorOverride("font_color", new Color(1f, 1f, 0.3f));
+                turnOrderLabels[i].AddThemeConstantOverride("font_size", 26);
+            }
+            else
+            {
+                turnOrderLabels[i].AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f));
+                turnOrderLabels[i].AddThemeConstantOverride("font_size", 22);
+            }
+        }
+    }
+
+    // 更新順序列上的手牌數
+    public void UpdateTurnOrderCounts(List<int> cardCounts)
+    {
+        if (turnOrderLabels == null || turnOrderLabels.Count == 0) return;
+        for (int i = 0; i < turnOrderLabels.Count && i < cardCounts.Count; i++)
+        {
+            var name = (i < turnOrderNames.Count) ? turnOrderNames[i] : $"玩家{i+1}";
+            turnOrderLabels[i].Text = $"{name}: {cardCounts[i]}張";
+        }
     }
     
     // 按鈕狀態管理
