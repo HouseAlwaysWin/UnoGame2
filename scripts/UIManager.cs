@@ -36,6 +36,7 @@ public partial class UIManager : Node
     // 目前玩家順序UI
     private HBoxContainer turnOrderBar;
     private List<Label> turnOrderLabels = new List<Label>();
+    private List<Label> turnOrderArrows = new List<Label>();
     private List<string> turnOrderNames = new List<string>();
     
     // 事件信號
@@ -196,7 +197,7 @@ public partial class UIManager : Node
     }
 
     // 初始化玩家順序列（動態建立）
-    public void InitializeTurnOrder(List<string> playerNames)
+    public void InitializeTurnOrder(List<string> playerNames, bool isClockwise = true)
     {
         try
         {
@@ -205,10 +206,8 @@ public partial class UIManager : Node
                 var uiLayer = GetNode<CanvasLayer>("../UILayer");
                 turnOrderBar = new HBoxContainer();
                 turnOrderBar.AddThemeConstantOverride("separation", 12);
-                turnOrderBar.SetAnchorsPreset(Control.LayoutPreset.TopWide);
-                turnOrderBar.OffsetLeft = 180; // 讓出左側按鈕空間
-                turnOrderBar.OffsetRight = -180; // 讓出右側返回主選單
-                turnOrderBar.Position = new Vector2(0, 48); // 下移避免與上方狀態/按鈕重疊
+                turnOrderBar.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
+                turnOrderBar.Alignment = BoxContainer.AlignmentMode.Begin;
                 uiLayer.AddChild(turnOrderBar);
             }
             // 清空舊的
@@ -217,6 +216,7 @@ public partial class UIManager : Node
                 child.QueueFree();
             }
             turnOrderLabels.Clear();
+            turnOrderArrows.Clear();
             turnOrderNames.Clear();
 
             for (int i = 0; i < playerNames.Count; i++)
@@ -232,12 +232,16 @@ public partial class UIManager : Node
                 if (i < playerNames.Count - 1)
                 {
                 var arrow = new Label();
-                arrow.Text = "  →  ";
+                    arrow.Text = isClockwise ? "  →  " : "  ←  ";
                     arrow.AddThemeConstantOverride("font_size", 22);
                     arrow.AddThemeColorOverride("font_color", new Color(0.7f, 0.7f, 0.7f));
                     turnOrderBar.AddChild(arrow);
+                    turnOrderArrows.Add(arrow);
                 }
             }
+
+            // 根據上方狀態文字位置微調，確保上下兩排左側對齊
+            PositionTurnOrderBar();
         }
         catch (Exception ex)
         {
@@ -265,6 +269,17 @@ public partial class UIManager : Node
         }
     }
 
+    // 更新方向箭頭
+    public void UpdateDirection(bool isClockwise)
+    {
+        if (turnOrderArrows == null || turnOrderArrows.Count == 0) return;
+        foreach (var arrow in turnOrderArrows)
+        {
+            if (arrow == null) continue;
+            arrow.Text = isClockwise ? "  →  " : "  ←  ";
+        }
+    }
+
     // 更新順序列上的手牌數
     public void UpdateTurnOrderCounts(List<int> cardCounts)
     {
@@ -273,6 +288,24 @@ public partial class UIManager : Node
         {
             var name = (i < turnOrderNames.Count) ? turnOrderNames[i] : $"玩家{i+1}";
             turnOrderLabels[i].Text = $"{name}: {cardCounts[i]}張";
+        }
+    }
+
+    private void PositionTurnOrderBar()
+    {
+        if (turnOrderBar == null) return;
+        // 與上方的 currentPlayerLabel 左側對齊，並放在其下一行
+        if (currentPlayerLabel != null)
+        {
+            // TopLeft 佈局下，直接使用 GlobalPosition
+            var basePos = currentPlayerLabel.GlobalPosition;
+            var y = basePos.Y + currentPlayerLabel.Size.Y + 6; // 下一行，留 6px 間距
+            turnOrderBar.Position = new Vector2(basePos.X, y);
+        }
+        else
+        {
+            // 回退：固定位置，避免遮擋
+            turnOrderBar.Position = new Vector2(24, 64);
         }
     }
     

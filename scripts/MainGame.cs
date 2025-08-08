@@ -736,10 +736,10 @@ public partial class MainGame : Node2D
             case CardType.Skip: uiManager.AddMessage("跳過下一個玩家的回合"); break;
             case CardType.Reverse:
                 uiManager.AddMessage("遊戲方向改變");
-                // 方向已在 GameStateManager 中切換，這裡僅刷新順序列與高亮
+                // 方向已在 GameStateManager 中切換，這裡僅刷新順序列與高亮、箭頭方向
                 var names = new List<string> { "玩家1 (你)" };
                 foreach (var cpu in gameStateManager.ComputerPlayers) names.Add(cpu.PlayerName);
-                uiManager.InitializeTurnOrder(names);
+                uiManager.InitializeTurnOrder(names, gameStateManager.IsClockwiseDirection);
                 var counts = new List<int> { gameStateManager.PlayerHand.Count };
                 foreach (var cpu in gameStateManager.ComputerPlayers) counts.Add(cpu.Hand.Count);
                 uiManager.UpdateTurnOrderCounts(counts);
@@ -778,7 +778,9 @@ public partial class MainGame : Node2D
         {
             playerNames.Add(cpu.PlayerName);
         }
-        uiManager.InitializeTurnOrder(playerNames);
+        uiManager.InitializeTurnOrder(playerNames, gameStateManager.IsClockwiseDirection);
+        // 重新定位順序列，確保和上方狀態列上下兩排左對齊
+        // （位置計算在 UIManager 內部完成）
         uiManager.UpdateCurrentTurnHighlight(gameStateManager.CurrentPlayerIndex);
         
         // 啟用人類玩家的按鈕
